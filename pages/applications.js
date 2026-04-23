@@ -7,6 +7,11 @@ import StaffLayout from '../components/StaffLayout';
 function Applications() {
     const [applications, setApplications] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [filter, setFilter] = useState('all');
+    const [positionFilter, setPositionFilter] = useState('all');
+
+    // Extract unique positions from applications
+    const uniquePositions = [...new Set(applications.map(app => app.position || 'General'))].filter(Boolean);
 
     useEffect(() => { load(); }, []);
 
@@ -50,17 +55,50 @@ function Applications() {
         link.download = 'job_applications.csv';
         link.click();
     };
+    const filteredApplications = applications.filter(app => {
+        // Status filter
+        if (filter === 'interviewed' && !app.interviewed) return false;
+        if (filter === 'pending' && app.interviewed) return false;
+        
+        // Position filter
+        const appPos = app.position || 'General';
+        if (positionFilter !== 'all' && appPos !== positionFilter) return false;
+
+        return true;
+    });
 
     return (
         <StaffLayout title="Job Applications">
             <Head><title>Applications | Staff Portal</title></Head>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', margin: 0 }}>
-                    All applications from the Careers portal ({applications.length})
+                    Showing {filteredApplications.length} of {applications.length} applications
                 </p>
-                {applications.length > 0 && (
-                    <button className="btn" onClick={handleExport} style={{ fontSize: '0.82rem' }}>Export CSV</button>
-                )}
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <select 
+                        value={positionFilter} 
+                        onChange={(e) => setPositionFilter(e.target.value)}
+                        style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '0.85rem', background: 'var(--card-bg)', maxWidth: '200px' }}
+                    >
+                        <option value="all">All Positions</option>
+                        {uniquePositions.map(pos => (
+                            <option key={pos} value={pos}>{pos}</option>
+                        ))}
+                    </select>
+
+                    <select 
+                        value={filter} 
+                        onChange={(e) => setFilter(e.target.value)}
+                        style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '0.85rem', background: 'var(--card-bg)' }}
+                    >
+                        <option value="all">All Statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="interviewed">Interviewed</option>
+                    </select>
+                    {applications.length > 0 && (
+                        <button className="btn" onClick={handleExport} style={{ fontSize: '0.82rem' }}>Export CSV</button>
+                    )}
+                </div>
             </div>
 
             {loading ? (
@@ -79,7 +117,7 @@ function Applications() {
                             </tr>
                         </thead>
                         <tbody>
-                            {applications.map(app => (
+                            {filteredApplications.map(app => (
                                 <tr key={app.id}>
                                     <td style={{ whiteSpace: 'nowrap', color: 'var(--text-secondary)' }}>
                                         {new Date(app.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
