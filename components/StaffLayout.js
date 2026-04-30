@@ -44,6 +44,10 @@ const MODULE_NAV = {
     careers: [
         { label: 'Applications', href: '/applications', icon: 'briefcase' },
     ],
+    classes: [
+        { label: 'HR Onboarding', href: '/classes/onboard', icon: 'user' },
+        { label: 'Schedule Demo', href: '/classes/schedule', icon: 'tasks' },
+    ],
 };
 
 export default function StaffLayout({ children, title }) {
@@ -107,6 +111,15 @@ export default function StaffLayout({ children, title }) {
                             ))}
                         </div>
                     )}
+
+                    {/* HR & Recruitment — always visible */}
+                    <div className="nav-section">
+                        <div className="nav-title">HR & Recruitment</div>
+                        <a href="/classes/onboard" className={`nav-item ${router.pathname === '/classes/onboard' ? 'active' : ''}`}
+                            onClick={(e) => { e.preventDefault(); setSidebarOpen(false); router.push('/classes/onboard'); }}>
+                            <span className="nav-icon">{ICONS.user}</span> Onboarding
+                        </a>
+                    </div>
                 </nav>
 
                 <div className="sidebar-footer">

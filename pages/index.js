@@ -24,6 +24,7 @@ function Dashboard() {
     const MODULE_ROUTES = {
         support: '/complaints',
         careers: '/applications',
+        classes: '/classes/onboard',
     };
 
     const MODULE_COLORS = {
