@@ -1,12 +1,11 @@
 import Head from 'next/head';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { withStaffAuth } from '../../lib/auth';
 import { apiGet, apiPost, apiPatch, apiDelete } from '../../lib/api';
 import StaffLayout from '../../components/StaffLayout';
 
 function HROnboarding() {
     const [staff, setStaff] = useState([]);
-    const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [approvingId, setApprovingId] = useState(null);
@@ -29,23 +28,68 @@ function HROnboarding() {
     // Delete confirmation
     const [confirmDelete, setConfirmDelete] = useState(null);
 
+    // Course lazy loading state
+    const [courses, setCourses] = useState([]);
+    const [coursePage, setCoursePage] = useState(1);
+    const [courseHasNext, setCourseHasNext] = useState(false);
+    const [courseSearch, setCourseSearch] = useState('');
+    const [courseLoading, setCourseLoading] = useState(false);
+    const courseListRef = useRef(null);
+    const searchTimerRef = useRef(null);
+
+    const loadCourses = useCallback(async (page = 1, search = '', append = false) => {
+        setCourseLoading(true);
+        try {
+            const params = new URLSearchParams({ page, page_size: 20 });
+            if (search) params.set('search', search);
+            const data = await apiGet(`/api/classes/courses/?${params}`);
+            const results = data.results || [];
+            setCourses(prev => append ? [...prev, ...results] : results);
+            setCoursePage(data.page || page);
+            setCourseHasNext(data.has_next || false);
+        } catch {
+            if (!append) setCourses([]);
+        } finally {
+            setCourseLoading(false);
+        }
+    }, []);
+
     const loadData = async () => {
         setLoading(true);
         try {
-            const [staffData, courseData] = await Promise.all([
-                apiGet('/api/admin/onboard-staff/'),
-                apiGet('/api/classes/courses/').catch(() => []),
-            ]);
+            const staffData = await apiGet('/api/admin/onboard-staff/');
             setStaff(Array.isArray(staffData) ? staffData : []);
-            setCourses(Array.isArray(courseData) ? courseData : []);
         } catch (err) {
             console.error(err);
         } finally {
             setLoading(false);
         }
+        loadCourses(1, '');
     };
 
     useEffect(() => { loadData(); }, []);
+
+    // Debounced course search
+    const handleCourseSearch = (val) => {
+        setCourseSearch(val);
+        clearTimeout(searchTimerRef.current);
+        searchTimerRef.current = setTimeout(() => {
+            loadCourses(1, val, false);
+        }, 350);
+    };
+
+    const loadMoreCourses = () => {
+        if (courseHasNext && !courseLoading) {
+            loadCourses(coursePage + 1, courseSearch, true);
+        }
+    };
+
+    const handleCourseScroll = (e) => {
+        const el = e.target;
+        if (el.scrollHeight - el.scrollTop - el.clientHeight < 40) {
+            loadMoreCourses();
+        }
+    };
 
     const clearAlerts = () => { setMessage(null); setError(null); };
 
@@ -235,28 +279,92 @@ function HROnboarding() {
                         </div>
                     </div>
 
-                    {role === 'teacher' && courses.length > 0 && (
+                    {role === 'teacher' && (
                         <div className="form-group" style={{ marginTop: '4px' }}>
                             <label className="label">Assign Subjects (optional)</label>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
+
+                            {/* Selected subjects preview */}
+                            {selectedSubjects.length > 0 && (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px', marginBottom: '8px' }}>
+                                    {selectedSubjects.map(id => {
+                                        const c = courses.find(x => x.id === id);
+                                        return (
+                                            <span key={id} className="badge" style={{
+                                                background: 'var(--green-bg)', color: 'var(--accent-dark)',
+                                                border: '2px solid var(--accent)', padding: '4px 12px',
+                                                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                            }}>
+                                                {c ? c.name : `#${id}`}
+                                                <span style={{ cursor: 'pointer', fontWeight: 700, fontSize: '1rem', lineHeight: 1 }}
+                                                    onClick={() => toggleSubject(id)}>×</span>
+                                            </span>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            {/* Search input */}
+                            <input
+                                className="input"
+                                type="text"
+                                placeholder="Search courses..."
+                                value={courseSearch}
+                                onChange={(e) => handleCourseSearch(e.target.value)}
+                                style={{ marginTop: '4px', marginBottom: '0' }}
+                            />
+
+                            {/* Scrollable course list */}
+                            <div
+                                onScroll={handleCourseScroll}
+                                style={{
+                                    maxHeight: '180px', overflowY: 'auto', marginTop: '8px',
+                                    border: '1px solid var(--border)', borderRadius: '8px',
+                                    padding: '4px',
+                                }}
+                            >
+                                {courses.length === 0 && !courseLoading && (
+                                    <div style={{ padding: '12px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
+                                        {courseSearch ? 'No courses found.' : 'Loading courses...'}
+                                    </div>
+                                )}
                                 {courses.map((c) => (
                                     <button
                                         key={c.id}
                                         type="button"
-                                        className={`badge ${selectedSubjects.includes(c.id) ? 'selected' : ''}`}
                                         style={{
-                                            cursor: 'pointer',
-                                            border: selectedSubjects.includes(c.id) ? '2px solid var(--accent)' : '1px solid var(--border)',
+                                            display: 'block', width: '100%', textAlign: 'left',
+                                            padding: '8px 12px', border: 'none', borderRadius: '6px',
+                                            cursor: 'pointer', fontSize: '0.88rem', fontFamily: 'inherit',
                                             background: selectedSubjects.includes(c.id) ? 'var(--green-bg)' : 'transparent',
-                                            color: selectedSubjects.includes(c.id) ? 'var(--accent-dark)' : 'var(--text-secondary)',
-                                            padding: '6px 14px',
-                                            transition: 'all 0.2s',
+                                            color: selectedSubjects.includes(c.id) ? 'var(--accent-dark)' : 'var(--text-primary)',
+                                            fontWeight: selectedSubjects.includes(c.id) ? 600 : 400,
+                                            transition: 'background 0.15s',
                                         }}
+                                        onMouseEnter={(e) => { if (!selectedSubjects.includes(c.id)) e.target.style.background = 'rgba(0,0,0,0.03)'; }}
+                                        onMouseLeave={(e) => { if (!selectedSubjects.includes(c.id)) e.target.style.background = 'transparent'; }}
                                         onClick={() => toggleSubject(c.id)}
                                     >
-                                        {c.name}
+                                        {selectedSubjects.includes(c.id) ? '✓ ' : ''}{c.name}
                                     </button>
                                 ))}
+                                {courseLoading && (
+                                    <div style={{ padding: '8px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
+                                        Loading more...
+                                    </div>
+                                )}
+                                {courseHasNext && !courseLoading && (
+                                    <button
+                                        type="button"
+                                        onClick={loadMoreCourses}
+                                        style={{
+                                            display: 'block', width: '100%', padding: '6px',
+                                            border: 'none', background: 'none', color: 'var(--accent)',
+                                            cursor: 'pointer', fontSize: '0.82rem', fontFamily: 'inherit',
+                                        }}
+                                    >
+                                        Load more courses...
+                                    </button>
+                                )}
                             </div>
                         </div>
                     )}
