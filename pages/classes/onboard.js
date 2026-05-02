@@ -174,7 +174,7 @@ function HROnboarding() {
             <div className="card" style={{ marginBottom: '28px' }}>
                 <h3 className="section-title" style={{ marginBottom: '20px' }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" /></svg>
                         Onboard New Staff
                     </span>
                 </h3>
@@ -188,7 +188,7 @@ function HROnboarding() {
                                 type="text"
                                 value={firstName}
                                 onChange={(e) => setFirstName(e.target.value)}
-                                placeholder="John"
+                                placeholder="First Name"
                             />
                         </div>
                         <div className="form-group">
@@ -198,7 +198,7 @@ function HROnboarding() {
                                 type="text"
                                 value={lastName}
                                 onChange={(e) => setLastName(e.target.value)}
-                                placeholder="Doe"
+                                placeholder="Last Name"
                             />
                         </div>
                         <div className="form-group">
@@ -281,7 +281,7 @@ function HROnboarding() {
                     {/* ───── Pending Approvals ───── */}
                     <h3 className="section-title">
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
                             Pending Approvals ({pendingStaff.length})
                         </span>
                     </h3>
@@ -376,7 +376,7 @@ function HROnboarding() {
                     {/* ───── Active Staff ───── */}
                     <h3 className="section-title">
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
                             Active Staff ({approvedStaff.length})
                         </span>
                     </h3>
