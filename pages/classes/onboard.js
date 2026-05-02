@@ -1,7 +1,7 @@
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { withStaffAuth } from '../../lib/auth';
-import { apiGet, apiPost } from '../../lib/api';
+import { apiGet, apiPost, apiPatch, apiDelete } from '../../lib/api';
 import StaffLayout from '../../components/StaffLayout';
 
 function HROnboarding() {
@@ -10,13 +10,24 @@ function HROnboarding() {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [approvingId, setApprovingId] = useState(null);
+    const [deletingId, setDeletingId] = useState(null);
     const [message, setMessage] = useState(null);
     const [error, setError] = useState(null);
 
     // Form state
     const [email, setEmail] = useState('');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
     const [role, setRole] = useState('teacher');
     const [selectedSubjects, setSelectedSubjects] = useState([]);
+
+    // Edit modal state
+    const [editingStaff, setEditingStaff] = useState(null);
+    const [editForm, setEditForm] = useState({});
+
+    // Delete confirmation
+    const [confirmDelete, setConfirmDelete] = useState(null);
 
     const loadData = async () => {
         setLoading(true);
@@ -36,21 +47,25 @@ function HROnboarding() {
 
     useEffect(() => { loadData(); }, []);
 
+    const clearAlerts = () => { setMessage(null); setError(null); };
+
     const handleOnboard = async (e) => {
         e.preventDefault();
         setSubmitting(true);
-        setMessage(null);
-        setError(null);
+        clearAlerts();
         try {
             const res = await apiPost('/api/admin/onboard-staff/', {
                 email,
+                first_name: firstName,
+                last_name: lastName,
+                phone_number: phoneNumber,
                 role,
                 subjects: selectedSubjects,
             });
             const data = await res.json();
             if (res.ok) {
                 setMessage(data.message);
-                setEmail('');
+                setEmail(''); setFirstName(''); setLastName(''); setPhoneNumber('');
                 setSelectedSubjects([]);
                 loadData();
             } else {
@@ -65,6 +80,7 @@ function HROnboarding() {
 
     const handleApprove = async (userId) => {
         setApprovingId(userId);
+        clearAlerts();
         try {
             const res = await apiPost('/api/admin/approve-staff/', { user_id: userId });
             const data = await res.json();
@@ -81,10 +97,67 @@ function HROnboarding() {
         }
     };
 
+    const handleDelete = async (userId) => {
+        setDeletingId(userId);
+        clearAlerts();
+        try {
+            const res = await apiDelete(`/api/admin/onboard-staff/${userId}/`);
+            const data = await res.json();
+            if (res.ok) {
+                setMessage(data.message || 'Staff deleted successfully.');
+                setConfirmDelete(null);
+                loadData();
+            } else {
+                setError(data.error || 'Failed to delete.');
+            }
+        } catch (err) {
+            setError('Network error.');
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
+    const openEditModal = (s) => {
+        setEditingStaff(s);
+        setEditForm({
+            first_name: s.first_name || '',
+            last_name: s.last_name || '',
+            phone_number: s.phone_number || '',
+            email: s.email || '',
+            subjects: (s.subjects || []).map(sub => sub.id),
+        });
+    };
+
+    const handleEditSave = async () => {
+        clearAlerts();
+        try {
+            const res = await apiPatch(`/api/admin/onboard-staff/${editingStaff.id}/`, editForm);
+            const data = await res.json();
+            if (res.ok) {
+                setMessage(data.message || 'Staff updated.');
+                setEditingStaff(null);
+                loadData();
+            } else {
+                setError(data.error || 'Failed to update.');
+            }
+        } catch (err) {
+            setError('Network error.');
+        }
+    };
+
     const toggleSubject = (id) => {
         setSelectedSubjects((prev) =>
             prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
         );
+    };
+
+    const toggleEditSubject = (id) => {
+        setEditForm(prev => ({
+            ...prev,
+            subjects: prev.subjects.includes(id)
+                ? prev.subjects.filter(s => s !== id)
+                : [...prev.subjects, id],
+        }));
     };
 
     const pendingStaff = staff.filter(s => !s.is_verified);
@@ -94,10 +167,10 @@ function HROnboarding() {
         <StaffLayout title="Classes — HR Onboarding">
             <Head><title>HR Onboarding | Staff Portal</title></Head>
 
-            {message && <div className="alert success">{message}</div>}
-            {error && <div className="alert error">{error}</div>}
+            {message && <div className="alert success" style={{ marginBottom: '20px' }}>{message}</div>}
+            {error && <div className="alert error" style={{ marginBottom: '20px' }}>{error}</div>}
 
-            {/* Onboarding Form */}
+            {/* ───── Onboarding Form ───── */}
             <div className="card" style={{ marginBottom: '28px' }}>
                 <h3 className="section-title" style={{ marginBottom: '20px' }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
@@ -109,7 +182,27 @@ function HROnboarding() {
                 <form onSubmit={handleOnboard}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                         <div className="form-group">
-                            <label className="label">Email Address</label>
+                            <label className="label">First Name</label>
+                            <input
+                                className="input"
+                                type="text"
+                                value={firstName}
+                                onChange={(e) => setFirstName(e.target.value)}
+                                placeholder="John"
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label className="label">Last Name</label>
+                            <input
+                                className="input"
+                                type="text"
+                                value={lastName}
+                                onChange={(e) => setLastName(e.target.value)}
+                                placeholder="Doe"
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label className="label">Email Address *</label>
                             <input
                                 className="input"
                                 type="email"
@@ -120,7 +213,17 @@ function HROnboarding() {
                             />
                         </div>
                         <div className="form-group">
-                            <label className="label">Role</label>
+                            <label className="label">Phone Number</label>
+                            <input
+                                className="input"
+                                type="tel"
+                                value={phoneNumber}
+                                onChange={(e) => setPhoneNumber(e.target.value)}
+                                placeholder="+91 9876543210"
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label className="label">Role *</label>
                             <select
                                 className="input"
                                 value={role}
@@ -175,7 +278,7 @@ function HROnboarding() {
                 </div>
             ) : (
                 <>
-                    {/* Pending Approvals */}
+                    {/* ───── Pending Approvals ───── */}
                     <h3 className="section-title">
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -188,17 +291,22 @@ function HROnboarding() {
                             <table className="table">
                                 <thead>
                                     <tr>
+                                        <th>Name</th>
                                         <th>Email</th>
+                                        <th>Phone</th>
                                         <th>Role</th>
+                                        <th>Subjects</th>
                                         <th>Agreement</th>
                                         <th>Joined</th>
-                                        <th>Action</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {pendingStaff.map((s) => (
                                         <tr key={s.id}>
-                                            <td><strong>{s.email}</strong></td>
+                                            <td><strong>{s.first_name} {s.last_name}</strong></td>
+                                            <td style={{ fontSize: '0.88rem' }}>{s.email}</td>
+                                            <td style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>{s.phone_number || '—'}</td>
                                             <td>
                                                 <span className="badge" style={{
                                                     background: s.role === 'teacher' ? 'var(--blue-bg)' : 'var(--purple-bg)',
@@ -206,6 +314,12 @@ function HROnboarding() {
                                                 }}>
                                                     {s.role}
                                                 </span>
+                                            </td>
+                                            <td style={{ fontSize: '0.85rem' }}>
+                                                {s.subjects && s.subjects.length > 0
+                                                    ? s.subjects.map(sub => sub.name).join(', ')
+                                                    : <span style={{ color: 'var(--text-secondary)' }}>—</span>
+                                                }
                                             </td>
                                             <td>
                                                 <span className="badge" style={{
@@ -219,15 +333,33 @@ function HROnboarding() {
                                                 {new Date(s.date_joined).toLocaleDateString('en-IN')}
                                             </td>
                                             <td>
-                                                <button
-                                                    className="btn primary"
-                                                    style={{ padding: '6px 16px', fontSize: '0.85rem' }}
-                                                    disabled={!s.has_signed || approvingId === s.id}
-                                                    onClick={() => handleApprove(s.id)}
-                                                    title={!s.has_signed ? 'Staff must sign agreement first' : 'Approve this staff member'}
-                                                >
-                                                    {approvingId === s.id ? 'Approving...' : 'Approve'}
-                                                </button>
+                                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                                    <button
+                                                        className="btn primary"
+                                                        style={{ padding: '6px 14px', fontSize: '0.82rem' }}
+                                                        disabled={!s.has_signed || approvingId === s.id}
+                                                        onClick={() => handleApprove(s.id)}
+                                                        title={!s.has_signed ? 'Staff must sign agreement first' : 'Approve this staff member'}
+                                                    >
+                                                        {approvingId === s.id ? '...' : 'Approve'}
+                                                    </button>
+                                                    <button
+                                                        className="btn"
+                                                        style={{ padding: '6px 12px', fontSize: '0.82rem', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+                                                        onClick={() => openEditModal(s)}
+                                                        title="Edit details"
+                                                    >
+                                                        ✏️
+                                                    </button>
+                                                    <button
+                                                        className="btn"
+                                                        style={{ padding: '6px 12px', fontSize: '0.82rem', background: 'rgba(231,76,60,0.08)', border: '1px solid rgba(231,76,60,0.2)', color: '#e74c3c' }}
+                                                        onClick={() => setConfirmDelete(s)}
+                                                        title="Delete"
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
@@ -241,7 +373,7 @@ function HROnboarding() {
                         </div>
                     )}
 
-                    {/* Approved Staff */}
+                    {/* ───── Active Staff ───── */}
                     <h3 className="section-title">
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
@@ -256,8 +388,11 @@ function HROnboarding() {
                                     <tr>
                                         <th>Name</th>
                                         <th>Email</th>
+                                        <th>Phone</th>
                                         <th>Role</th>
+                                        <th>Subjects / Courses</th>
                                         <th>Joined</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -265,6 +400,7 @@ function HROnboarding() {
                                         <tr key={s.id}>
                                             <td><strong>{s.first_name} {s.last_name}</strong></td>
                                             <td style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>{s.email}</td>
+                                            <td style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>{s.phone_number || '—'}</td>
                                             <td>
                                                 <span className="badge" style={{
                                                     background: s.role === 'teacher' ? 'var(--blue-bg)' : 'var(--purple-bg)',
@@ -273,8 +409,46 @@ function HROnboarding() {
                                                     {s.role}
                                                 </span>
                                             </td>
+                                            <td style={{ fontSize: '0.85rem' }}>
+                                                {s.subjects && s.subjects.length > 0 ? (
+                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                                        {s.subjects.map(sub => (
+                                                            <span key={sub.id} className="badge" style={{
+                                                                background: 'var(--blue-bg)',
+                                                                color: 'var(--blue)',
+                                                                fontSize: '0.78rem',
+                                                                padding: '3px 10px',
+                                                            }}>
+                                                                {sub.name}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <span style={{ color: 'var(--text-secondary)' }}>—</span>
+                                                )}
+                                            </td>
                                             <td style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
                                                 {new Date(s.date_joined).toLocaleDateString('en-IN')}
+                                            </td>
+                                            <td>
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    <button
+                                                        className="btn"
+                                                        style={{ padding: '6px 12px', fontSize: '0.82rem', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+                                                        onClick={() => openEditModal(s)}
+                                                        title="Edit details"
+                                                    >
+                                                        ✏️
+                                                    </button>
+                                                    <button
+                                                        className="btn"
+                                                        style={{ padding: '6px 12px', fontSize: '0.82rem', background: 'rgba(231,76,60,0.08)', border: '1px solid rgba(231,76,60,0.2)', color: '#e74c3c' }}
+                                                        onClick={() => setConfirmDelete(s)}
+                                                        title="Delete"
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
@@ -289,6 +463,128 @@ function HROnboarding() {
                     )}
                 </>
             )}
+
+            {/* ───── Edit Modal ───── */}
+            {editingStaff && (
+                <div style={{
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+                    backdropFilter: 'blur(4px)',
+                }} onClick={() => setEditingStaff(null)}>
+                    <div className="card" style={{
+                        width: '100%', maxWidth: '520px', margin: '20px',
+                        animation: 'fadeIn 0.2s ease',
+                    }} onClick={(e) => e.stopPropagation()}>
+                        <h3 className="section-title" style={{ marginBottom: '20px' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                                ✏️ Edit Staff — {editingStaff.email}
+                            </span>
+                        </h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                            <div className="form-group">
+                                <label className="label">First Name</label>
+                                <input className="input" value={editForm.first_name}
+                                    onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })} />
+                            </div>
+                            <div className="form-group">
+                                <label className="label">Last Name</label>
+                                <input className="input" value={editForm.last_name}
+                                    onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })} />
+                            </div>
+                            <div className="form-group">
+                                <label className="label">Email</label>
+                                <input className="input" type="email" value={editForm.email}
+                                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+                            </div>
+                            <div className="form-group">
+                                <label className="label">Phone</label>
+                                <input className="input" type="tel" value={editForm.phone_number}
+                                    onChange={(e) => setEditForm({ ...editForm, phone_number: e.target.value })} />
+                            </div>
+                        </div>
+
+                        {editingStaff.role === 'teacher' && courses.length > 0 && (
+                            <div className="form-group" style={{ marginTop: '12px' }}>
+                                <label className="label">Subjects</label>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
+                                    {courses.map((c) => (
+                                        <button
+                                            key={c.id}
+                                            type="button"
+                                            className="badge"
+                                            style={{
+                                                cursor: 'pointer',
+                                                border: editForm.subjects?.includes(c.id) ? '2px solid var(--accent)' : '1px solid var(--border)',
+                                                background: editForm.subjects?.includes(c.id) ? 'var(--green-bg)' : 'transparent',
+                                                color: editForm.subjects?.includes(c.id) ? 'var(--accent-dark)' : 'var(--text-secondary)',
+                                                padding: '6px 14px',
+                                                transition: 'all 0.2s',
+                                            }}
+                                            onClick={() => toggleEditSubject(c.id)}
+                                        >
+                                            {c.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
+                            <button className="btn" style={{ padding: '8px 20px', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+                                onClick={() => setEditingStaff(null)}>Cancel</button>
+                            <button className="btn primary" style={{ padding: '8px 24px' }}
+                                onClick={handleEditSave}>Save Changes</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ───── Delete Confirmation Modal ───── */}
+            {confirmDelete && (
+                <div style={{
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+                    backdropFilter: 'blur(4px)',
+                }} onClick={() => setConfirmDelete(null)}>
+                    <div className="card" style={{
+                        width: '100%', maxWidth: '420px', margin: '20px', textAlign: 'center',
+                        animation: 'fadeIn 0.2s ease',
+                    }} onClick={(e) => e.stopPropagation()}>
+                        <div style={{
+                            width: '56px', height: '56px', borderRadius: '50%',
+                            background: 'rgba(231,76,60,0.1)', display: 'flex',
+                            alignItems: 'center', justifyContent: 'center',
+                            margin: '0 auto 16px', fontSize: '24px',
+                        }}>
+                            🗑️
+                        </div>
+                        <h3 style={{ marginBottom: '8px' }}>Delete Staff Member?</h3>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '24px' }}>
+                            Are you sure you want to delete <strong>{confirmDelete.first_name} {confirmDelete.last_name}</strong> ({confirmDelete.email})?
+                            This action cannot be undone.
+                        </p>
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                            <button className="btn" style={{ padding: '10px 24px', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+                                onClick={() => setConfirmDelete(null)}>Cancel</button>
+                            <button className="btn" style={{
+                                padding: '10px 24px', background: '#e74c3c', color: 'white', border: 'none',
+                                borderRadius: '8px', fontWeight: 600,
+                            }}
+                                disabled={deletingId === confirmDelete.id}
+                                onClick={() => handleDelete(confirmDelete.id)}>
+                                {deletingId === confirmDelete.id ? 'Deleting...' : 'Delete'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <style jsx>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: scale(0.95); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+            `}</style>
         </StaffLayout>
     );
 }
