@@ -1,10 +1,11 @@
 import Head from 'next/head';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { withStaffAuth } from '../../lib/auth';
+import { withStaffAuth, useAuth } from '../../lib/auth';
 import { apiGet, apiPost, apiPatch, apiDelete } from '../../lib/api';
 import StaffLayout from '../../components/StaffLayout';
 
 function HROnboarding() {
+    const { user } = useAuth();
     const [staff, setStaff] = useState([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -12,6 +13,8 @@ function HROnboarding() {
     const [deletingId, setDeletingId] = useState(null);
     const [message, setMessage] = useState(null);
     const [error, setError] = useState(null);
+    const [isHR, setIsHR] = useState(false);
+    const [authChecking, setAuthChecking] = useState(true);
 
     // Form state
     const [email, setEmail] = useState('');
@@ -67,7 +70,22 @@ function HROnboarding() {
         loadCourses(1, '');
     };
 
-    useEffect(() => { loadData(); }, []);
+    useEffect(() => {
+        // Check if user is HR staff (has careers or classes module)
+        const checkAccess = async () => {
+            try {
+                const data = await apiGet('/api/staff/modules/');
+                const mods = data.modules || [];
+                const hasHRAccess = mods.some(m => m.key === 'careers' || m.key === 'classes');
+                setIsHR(hasHRAccess);
+                if (hasHRAccess) {
+                    loadData();
+                }
+            } catch { }
+            finally { setAuthChecking(false); }
+        };
+        checkAccess();
+    }, []);
 
     // Debounced course search
     const handleCourseSearch = (val) => {
@@ -214,6 +232,12 @@ function HROnboarding() {
             {message && <div className="alert success" style={{ marginBottom: '20px' }}>{message}</div>}
             {error && <div className="alert error" style={{ marginBottom: '20px' }}>{error}</div>}
 
+            {authChecking ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><div className="spinner" /></div>
+            ) : !isHR ? (
+                <div className="card empty-state"><h3>Access Restricted</h3><p>Only HR staff can access teacher/mentor onboarding.</p></div>
+            ) : (
+            <>
             {/* ───── Onboarding Form ───── */}
             <div className="card" style={{ marginBottom: '28px' }}>
                 <h3 className="section-title" style={{ marginBottom: '20px' }}>
@@ -686,6 +710,7 @@ function HROnboarding() {
                     </div>
                 </div>
             )}
+            </>)}
 
             <style jsx>{`
                 @keyframes fadeIn {

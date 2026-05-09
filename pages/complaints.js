@@ -8,12 +8,18 @@ function Complaints() {
     const [complaints, setComplaints] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
+    const [platform, setPlatform] = useState('all');
 
-    useEffect(() => { load(); }, []);
+    useEffect(() => { load(); }, [platform]);
 
     const load = async () => {
-        try { setComplaints(await apiGet('/api/staff/module/support/complaints/')); }
-        catch { }
+        setLoading(true);
+        try {
+            const url = platform === 'all'
+                ? '/api/staff/module/support/complaints/'
+                : `/api/staff/module/support/complaints/?platform=${platform}`;
+            setComplaints(await apiGet(url));
+        } catch { }
         finally { setLoading(false); }
     };
 
@@ -33,7 +39,26 @@ function Complaints() {
     return (
         <StaffLayout title="Complaints">
             <Head><title>Complaints | Staff Portal</title></Head>
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+
+            {/* Platform Filter */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginRight: '4px' }}>Platform:</span>
+                {[
+                    { key: 'all', label: 'All' },
+                    { key: 'gate', label: 'GATE' },
+                    { key: 'classes', label: 'Classes' },
+                ].map(p => (
+                    <button key={p.key}
+                        className={`btn ${platform === p.key ? 'primary' : ''}`}
+                        onClick={() => setPlatform(p.key)}
+                        style={{ fontSize: '0.82rem', padding: '6px 14px' }}>
+                        {p.label}
+                    </button>
+                ))}
+            </div>
+
+            {/* Status Filter */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
                 {['all', 'Pending', 'Resolved'].map(f => (
                     <button key={f} className={`btn ${filter === f ? 'primary' : ''}`}
                         onClick={() => setFilter(f)}
@@ -53,8 +78,16 @@ function Complaints() {
                                 <div style={{ flex: 1 }}>
                                     <h4 style={{ margin: '0 0 4px' }}>{c.subject}</h4>
                                     <p style={{ margin: '0 0 8px', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>{c.description}</p>
-                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                                        Student: {c.student_name} &middot; {new Date(c.created_at).toLocaleDateString()}
+                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                                        <span>Student: {c.student_name}</span>
+                                        <span className="badge" style={{
+                                            background: c.student_platform === 'gate' ? 'var(--blue-bg)' : 'var(--green-bg)',
+                                            color: c.student_platform === 'gate' ? 'var(--blue)' : 'var(--green)',
+                                            fontSize: '0.72rem',
+                                        }}>
+                                            {c.student_platform === 'gate' ? 'GATE' : 'Classes'}
+                                        </span>
+                                        <span>{new Date(c.created_at).toLocaleDateString()}</span>
                                     </div>
                                 </div>
                                 <span className="badge" style={{

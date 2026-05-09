@@ -4,6 +4,18 @@ import { withStaffAuth } from '../lib/auth';
 import { apiGet, apiFetch } from '../lib/api';
 import StaffLayout from '../components/StaffLayout';
 
+const isOnlyLink = (str) => {
+    if (!str) return false;
+    const trimmed = str.trim();
+    return !/\s/.test(trimmed) && (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('www.'));
+};
+
+const getLinkHref = (str) => {
+    const trimmed = str.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    return `https://${trimmed}`;
+};
+
 function Applications() {
     const [applications, setApplications] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -36,7 +48,7 @@ function Applications() {
     };
 
     const handleExport = () => {
-        const headers = ['Date', 'Candidate Name', 'Role', 'Email', 'Phone', 'Portfolio', 'Interviewed'];
+        const headers = ['Date', 'Candidate Name', 'Role', 'Email', 'Phone', 'Portfolio', 'Courses', 'Experience', 'Education', 'Status', 'Academy', 'Interviewed'];
         const rows = [headers.join(',')];
         applications.forEach(app => {
             rows.push([
@@ -45,7 +57,12 @@ function Applications() {
                 `"${app.position || ''}"`,
                 `"${app.email}"`,
                 `"${app.phone || ''}"`,
-                `"${app.portfolio || ''}"`,
+                `"${(app.portfolio || '').replace(/"/g, '""')}"`,
+                `"${(app.preferred_courses || '').replace(/"/g, '""')}"`,
+                `"${(app.experience || '').replace(/"/g, '""')}"`,
+                `"${(app.education || '').replace(/"/g, '""')}"`,
+                `"${(app.current_status || '').replace(/"/g, '""')}"`,
+                `"${(app.academy_details || '').replace(/"/g, '""')}"`,
                 `"${app.interviewed ? 'Yes' : 'No'}"`,
             ].join(','));
         });
@@ -112,7 +129,7 @@ function Applications() {
                                 <th>Name</th>
                                 <th>Position</th>
                                 <th>Contact</th>
-                                <th>Portfolio</th>
+                                <th>Details & Portfolio</th>
                                 <th style={{ textAlign: 'center' }}>Interviewed</th>
                             </tr>
                         </thead>
@@ -133,11 +150,25 @@ function Applications() {
                                         <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{app.phone || '--'}</div>
                                     </td>
                                     <td>
-                                        {app.portfolio ? (
-                                            <a href={app.portfolio} target="_blank" rel="noreferrer" style={{ fontWeight: '600' }}>
-                                                View Link
-                                            </a>
-                                        ) : (
+                                        {app.portfolio && (
+                                            <div style={{ marginBottom: '4px' }}>
+                                                <strong>Portfolio:</strong>{' '}
+                                                {isOnlyLink(app.portfolio) ? (
+                                                    <a href={getLinkHref(app.portfolio)} target="_blank" rel="noreferrer" style={{ fontWeight: '600', color: 'var(--accent)' }}>
+                                                        View Link
+                                                    </a>
+                                                ) : (
+                                                    <span style={{ whiteSpace: 'pre-wrap' }}>{app.portfolio}</span>
+                                                )}
+                                            </div>
+                                        )}
+                                        {app.preferred_courses && <div style={{ fontSize: '0.85rem', marginBottom: '2px' }}><strong>Courses:</strong> {app.preferred_courses}</div>}
+                                        {app.experience && <div style={{ fontSize: '0.85rem', marginBottom: '2px' }}><strong>Experience:</strong> {app.experience}</div>}
+                                        {app.education && <div style={{ fontSize: '0.85rem', marginBottom: '2px' }}><strong>Education:</strong> {app.education}</div>}
+                                        {app.current_status && <div style={{ fontSize: '0.85rem', marginBottom: '2px' }}><strong>Status:</strong> {app.current_status}</div>}
+                                        {app.academy_details && <div style={{ fontSize: '0.85rem', marginBottom: '2px' }}><strong>Academy:</strong> {app.academy_details}</div>}
+                                        
+                                        {!app.portfolio && !app.preferred_courses && !app.experience && !app.education && !app.current_status && !app.academy_details && (
                                             <span style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>Not provided</span>
                                         )}
                                     </td>
