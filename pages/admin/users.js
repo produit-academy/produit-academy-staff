@@ -168,7 +168,7 @@ function AdminUsers() {
 
     const needsPlatformSelect = accountType === 'support_staff' || accountType === 'contact_staff';
 
-    if (user?.role !== 'admin') {
+    if (!user?.is_superuser) {
         return (
             <StaffLayout title="Access Denied">
                 <div className="card empty-state"><h3>Admin access required</h3><p>Only super admins can manage users.</p></div>

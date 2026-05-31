@@ -84,6 +84,7 @@ export default function StaffLayout({ children, title }) {
     const isAdmin = role === 'admin';
     const isManager = role === 'manager';
     const isStaff = role === 'staff';
+    const isSuperAdmin = user?.is_superuser;
 
     useEffect(() => {
         // Only staff need to fetch module access — admin/manager see everything
@@ -194,8 +195,8 @@ export default function StaffLayout({ children, title }) {
                         </div>
                     )}
 
-                    {/* Super Admin — admin only */}
-                    {isAdmin && (
+                    {/* Super Admin — super admin only */}
+                    {isSuperAdmin && (
                         <div className="nav-section">
                             <div className="nav-title">Super Admin</div>
                             {navLink('/admin/users', 'shield', 'User Management')}
