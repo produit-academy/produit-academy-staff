@@ -15,6 +15,10 @@ function Payroll() {
     const [adjustWallet, setAdjustWallet] = useState(null);
     const [adjustForm, setAdjustForm] = useState({ type: 'credit', amount: '', note: '' });
 
+    const [showDirectPay, setShowDirectPay] = useState(false);
+    const [staffList, setStaffList] = useState([]);
+    const [directPayForm, setDirectPayForm] = useState({ staff_id: '', type: 'credit', amount: '', note: '' });
+
     useEffect(() => {
         Promise.all([loadWallets(), loadTasks()]).finally(() => setLoading(false));
     }, []);
@@ -65,6 +69,30 @@ function Payroll() {
         } catch { }
     };
 
+    const openDirectPay = async () => {
+        setShowDirectPay(true);
+        if (staffList.length === 0) {
+            try { setStaffList(await apiGet('/api/staff/manager/staff/')); }
+            catch { }
+        }
+    };
+
+    const handleDirectPaySubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const res = await apiPost('/api/staff/manager/direct-pay/', directPayForm);
+            const data = await res.json();
+            if (res.ok) {
+                alert(data.message);
+                setShowDirectPay(false);
+                setDirectPayForm({ staff_id: '', type: 'credit', amount: '', note: '' });
+                loadWallets();
+            } else {
+                alert(data.error || 'Direct payment failed.');
+            }
+        } catch { }
+    };
+
     const totalEarned = wallets.reduce((sum, w) => sum + parseFloat(w.total_earned || 0), 0);
     const totalPaid = wallets.reduce((sum, w) => sum + parseFloat(w.total_paid || 0), 0);
     const totalBalance = wallets.reduce((sum, w) => sum + parseFloat(w.balance || 0), 0);
@@ -105,11 +133,18 @@ function Payroll() {
                         All Wallets ({wallets.length})
                     </button>
                 </div>
-                <button className="btn" onClick={() => { setLoading(true); Promise.all([loadWallets(), loadTasks()]).finally(() => setLoading(false)); }}
-                    style={{ fontSize: '0.82rem', padding: '6px 14px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2v6h-6" /><path d="M3 12a9 9 0 1 0 2.6-6.4L21 8" /><path d="M3 22v-6h6" /><path d="M21 12a9 9 0 1 0-2.6 6.4L3 16" /></svg>
-                    Refresh Status
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <button className="btn" onClick={openDirectPay}
+                        style={{ fontSize: '0.82rem', padding: '6px 14px', background: 'var(--green-bg)', color: 'var(--green)', border: '1px solid var(--green)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                        Direct Payment
+                    </button>
+                    <button className="btn" onClick={() => { setLoading(true); Promise.all([loadWallets(), loadTasks()]).finally(() => setLoading(false)); }}
+                        style={{ fontSize: '0.82rem', padding: '6px 14px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2v6h-6" /><path d="M3 12a9 9 0 1 0 2.6-6.4L21 8" /><path d="M3 22v-6h6" /><path d="M21 12a9 9 0 1 0-2.6 6.4L3 16" /></svg>
+                        Refresh Status
+                    </button>
+                </div>
             </div>
 
             {loading ? (
@@ -240,6 +275,64 @@ function Payroll() {
                                 <button type="button" className="btn" style={{ padding: '8px 20px', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
                                     onClick={() => setAdjustWallet(null)}>Cancel</button>
                                 <button type="submit" className="btn primary" style={{ padding: '8px 24px' }}>Submit</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Direct Pay Modal */}
+            {showDirectPay && (
+                <div style={{
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+                    backdropFilter: 'blur(4px)',
+                }} onClick={() => setShowDirectPay(false)}>
+                    <div className="card" style={{
+                        width: '100%', maxWidth: '400px', margin: '20px',
+                        animation: 'fadeIn 0.2s ease',
+                    }} onClick={(e) => e.stopPropagation()}>
+                        <h3 className="section-title" style={{ marginBottom: '20px' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                                Direct Payment
+                            </span>
+                        </h3>
+                        <form onSubmit={handleDirectPaySubmit}>
+                            <div style={{ display: 'grid', gap: '14px' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Staff Member</label>
+                                    <select className="input" required value={directPayForm.staff_id}
+                                        onChange={(e) => setDirectPayForm({ ...directPayForm, staff_id: e.target.value })}>
+                                        <option value="">Select Staff...</option>
+                                        {staffList.map(s => (
+                                            <option key={s.id} value={s.id}>{s.first_name} {s.last_name} ({s.email}) - {s.role}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Transaction Type</label>
+                                    <select className="input" required value={directPayForm.type}
+                                        onChange={(e) => setDirectPayForm({ ...directPayForm, type: e.target.value })}>
+                                        <option value="credit">Add Earnings (Credit)</option>
+                                        <option value="debit">Record Payout (Debit)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Amount (₹)</label>
+                                    <input className="input" type="number" step="0.01" required value={directPayForm.amount}
+                                        onChange={(e) => setDirectPayForm({ ...directPayForm, amount: e.target.value })} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Note</label>
+                                    <input className="input" type="text" required value={directPayForm.note} placeholder="e.g. Payment for teaching"
+                                        onChange={(e) => setDirectPayForm({ ...directPayForm, note: e.target.value })} />
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
+                                <button type="button" className="btn" style={{ padding: '8px 20px', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+                                    onClick={() => setShowDirectPay(false)}>Cancel</button>
+                                <button type="submit" className="btn primary" style={{ padding: '8px 24px', background: 'var(--green)' }}>Submit</button>
                             </div>
                         </form>
                     </div>

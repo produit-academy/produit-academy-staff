@@ -22,6 +22,7 @@ function HROnboarding() {
     const [lastName, setLastName] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
     const [role, setRole] = useState('teacher');
+    const [hourlyRate, setHourlyRate] = useState('');
     const [selectedSubjects, setSelectedSubjects] = useState([]);
 
     // Edit modal state
@@ -30,6 +31,9 @@ function HROnboarding() {
 
     // Delete confirmation
     const [confirmDelete, setConfirmDelete] = useState(null);
+
+    // Edit modal search
+    const [editCourseSearch, setEditCourseSearch] = useState('');
 
     // Course lazy loading state
     const [courses, setCourses] = useState([]);
@@ -122,12 +126,17 @@ function HROnboarding() {
                 last_name: lastName,
                 phone_number: phoneNumber,
                 role,
+                hourly_rate: hourlyRate ? parseFloat(hourlyRate) : 0,
                 subjects: selectedSubjects,
             });
             const data = await res.json();
             if (res.ok) {
-                setMessage(data.message);
-                setEmail(''); setFirstName(''); setLastName(''); setPhoneNumber('');
+                let msg = data.message;
+                if (data.email_error) {
+                    msg += ` WARNING: Onboarding email failed to send (${data.email_error}).`;
+                }
+                setMessage(msg);
+                setEmail(''); setFirstName(''); setLastName(''); setPhoneNumber(''); setHourlyRate('');
                 setSelectedSubjects([]);
                 loadData();
             } else {
@@ -151,6 +160,25 @@ function HROnboarding() {
                 loadData();
             } else {
                 setError(data.error || data.message || 'Failed to approve.');
+            }
+        } catch (err) {
+            setError('Network error.');
+        } finally {
+            setApprovingId(null);
+        }
+    };
+
+    const handleRevoke = async (userId) => {
+        setApprovingId(userId);
+        clearAlerts();
+        try {
+            const res = await apiPost('/api/admin/revoke-staff/', { user_id: userId });
+            const data = await res.json();
+            if (res.ok) {
+                setMessage(data.message);
+                loadData();
+            } else {
+                setError(data.error || data.message || 'Failed to revoke.');
             }
         } catch (err) {
             setError('Network error.');
@@ -186,6 +214,7 @@ function HROnboarding() {
             last_name: s.last_name || '',
             phone_number: s.phone_number || '',
             email: s.email || '',
+            hourly_rate: s.hourly_rate || 0,
             subjects: (s.subjects || []).map(sub => sub.id),
         });
     };
@@ -222,8 +251,8 @@ function HROnboarding() {
         }));
     };
 
-    const pendingStaff = staff.filter(s => !s.is_verified);
-    const approvedStaff = staff.filter(s => s.is_verified);
+    const pendingStaff = staff.filter(s => !s.is_approved);
+    const approvedStaff = staff.filter(s => s.is_approved);
 
     return (
         <StaffLayout title="Classes — HR Onboarding">
@@ -301,6 +330,20 @@ function HROnboarding() {
                                 <option value="mentor">Mentor</option>
                             </select>
                         </div>
+                        {role === 'teacher' && (
+                            <div className="form-group">
+                                <label className="label">Hourly Rate (₹) *</label>
+                                <input
+                                    className="input"
+                                    type="number"
+                                    step="0.01"
+                                    value={hourlyRate}
+                                    onChange={(e) => setHourlyRate(e.target.value)}
+                                    placeholder="0.00"
+                                    required
+                                />
+                            </div>
+                        )}
                     </div>
 
                     {role === 'teacher' && (
@@ -368,7 +411,7 @@ function HROnboarding() {
                                         onMouseLeave={(e) => { if (!selectedSubjects.includes(c.id)) e.target.style.background = 'transparent'; }}
                                         onClick={() => toggleSubject(c.id)}
                                     >
-                                        {selectedSubjects.includes(c.id) ? '✓ ' : ''}{c.name}
+                                        {selectedSubjects.includes(c.id) ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{verticalAlign:'middle',marginRight:'4px'}}><polyline points="20 6 9 17 4 12"/></svg></> : ''}{c.name}
                                     </button>
                                 ))}
                                 {courseLoading && (
@@ -427,6 +470,7 @@ function HROnboarding() {
                                         <th>Email</th>
                                         <th>Phone</th>
                                         <th>Role</th>
+                                        <th>Hourly Rate</th>
                                         <th>Subjects</th>
                                         <th>Agreement</th>
                                         <th>Joined</th>
@@ -447,6 +491,7 @@ function HROnboarding() {
                                                     {s.role}
                                                 </span>
                                             </td>
+                                            <td style={{ fontSize: '0.88rem' }}>{s.role === 'teacher' ? `₹${s.hourly_rate}` : '—'}</td>
                                             <td style={{ fontSize: '0.85rem' }}>
                                                 {s.subjects && s.subjects.length > 0
                                                     ? s.subjects.map(sub => sub.name).join(', ')
@@ -458,7 +503,7 @@ function HROnboarding() {
                                                     background: s.has_signed ? 'var(--green-bg)' : 'var(--yellow-bg)',
                                                     color: s.has_signed ? 'var(--green)' : '#b8860b',
                                                 }}>
-                                                    {s.has_signed ? '✓ Signed' : '⏳ Pending'}
+                                                    {s.has_signed ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{verticalAlign:'middle',marginRight:'3px'}}><polyline points="20 6 9 17 4 12"/></svg>Signed</> : <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{verticalAlign:'middle',marginRight:'3px'}}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Pending</>}
                                                 </span>
                                             </td>
                                             <td style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
@@ -481,7 +526,7 @@ function HROnboarding() {
                                                         onClick={() => openEditModal(s)}
                                                         title="Edit details"
                                                     >
-                                                        ✏️
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                                                     </button>
                                                     <button
                                                         className="btn"
@@ -489,7 +534,7 @@ function HROnboarding() {
                                                         onClick={() => setConfirmDelete(s)}
                                                         title="Delete"
                                                     >
-                                                        🗑️
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                                                     </button>
                                                 </div>
                                             </td>
@@ -522,6 +567,7 @@ function HROnboarding() {
                                         <th>Email</th>
                                         <th>Phone</th>
                                         <th>Role</th>
+                                        <th>Hourly Rate</th>
                                         <th>Subjects / Courses</th>
                                         <th>Joined</th>
                                         <th>Actions</th>
@@ -541,6 +587,7 @@ function HROnboarding() {
                                                     {s.role}
                                                 </span>
                                             </td>
+                                            <td style={{ fontSize: '0.88rem' }}>{s.role === 'teacher' ? `₹${s.hourly_rate}` : '—'}</td>
                                             <td style={{ fontSize: '0.85rem' }}>
                                                 {s.subjects && s.subjects.length > 0 ? (
                                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
@@ -566,11 +613,20 @@ function HROnboarding() {
                                                 <div style={{ display: 'flex', gap: '8px' }}>
                                                     <button
                                                         className="btn"
+                                                        style={{ padding: '6px 12px', fontSize: '0.82rem', background: 'rgba(231,76,60,0.08)', border: '1px solid rgba(231,76,60,0.2)', color: '#e74c3c' }}
+                                                        disabled={approvingId === s.id}
+                                                        onClick={() => handleRevoke(s.id)}
+                                                        title="Revoke approval"
+                                                    >
+                                                        {approvingId === s.id ? '...' : 'Revoke'}
+                                                    </button>
+                                                    <button
+                                                        className="btn"
                                                         style={{ padding: '6px 12px', fontSize: '0.82rem', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
                                                         onClick={() => openEditModal(s)}
                                                         title="Edit details"
                                                     >
-                                                        ✏️
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                                                     </button>
                                                     <button
                                                         className="btn"
@@ -578,7 +634,7 @@ function HROnboarding() {
                                                         onClick={() => setConfirmDelete(s)}
                                                         title="Delete"
                                                     >
-                                                        🗑️
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                                                     </button>
                                                 </div>
                                             </td>
@@ -609,7 +665,8 @@ function HROnboarding() {
                     }} onClick={(e) => e.stopPropagation()}>
                         <h3 className="section-title" style={{ marginBottom: '20px' }}>
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                                ✏️ Edit Staff — {editingStaff.email}
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                                Edit Staff — {editingStaff.email}
                             </span>
                         </h3>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
@@ -633,31 +690,73 @@ function HROnboarding() {
                                 <input className="input" type="tel" value={editForm.phone_number}
                                     onChange={(e) => setEditForm({ ...editForm, phone_number: e.target.value })} />
                             </div>
+                            {editingStaff.role === 'teacher' && (
+                                <div className="form-group">
+                                    <label className="label">Hourly Rate (₹)</label>
+                                    <input className="input" type="number" step="0.01" value={editForm.hourly_rate}
+                                        onChange={(e) => setEditForm({ ...editForm, hourly_rate: parseFloat(e.target.value) || 0 })} />
+                                </div>
+                            )}
                         </div>
 
                         {editingStaff.role === 'teacher' && courses.length > 0 && (
                             <div className="form-group" style={{ marginTop: '12px' }}>
                                 <label className="label">Subjects</label>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
-                                    {courses.map((c) => (
-                                        <button
-                                            key={c.id}
-                                            type="button"
-                                            className="badge"
-                                            style={{
-                                                cursor: 'pointer',
-                                                border: editForm.subjects?.includes(c.id) ? '2px solid var(--accent)' : '1px solid var(--border)',
-                                                background: editForm.subjects?.includes(c.id) ? 'var(--green-bg)' : 'transparent',
-                                                color: editForm.subjects?.includes(c.id) ? 'var(--accent-dark)' : 'var(--text-secondary)',
-                                                padding: '6px 14px',
-                                                transition: 'all 0.2s',
-                                            }}
-                                            onClick={() => toggleEditSubject(c.id)}
-                                        >
-                                            {c.name}
-                                        </button>
-                                    ))}
-                                </div>
+                                
+                                {/* Selected subjects preview */}
+                                {editForm.subjects?.length > 0 && (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px', marginBottom: '8px' }}>
+                                        {editForm.subjects.map(id => {
+                                            const c = courses.find(x => x.id === id);
+                                            return (
+                                                <span key={id} className="badge" style={{
+                                                    background: 'var(--green-bg)', color: 'var(--accent-dark)',
+                                                    border: '2px solid var(--accent)', padding: '4px 12px',
+                                                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                                }}>
+                                                    {c ? c.name : `#${id}`}
+                                                    <span style={{ cursor: 'pointer', fontWeight: 700, fontSize: '1rem', lineHeight: 1 }}
+                                                        onClick={() => toggleEditSubject(id)}>×</span>
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                {/* Search input */}
+                                <input
+                                    className="input"
+                                    type="text"
+                                    placeholder="Search to add subjects..."
+                                    value={editCourseSearch}
+                                    onChange={(e) => setEditCourseSearch(e.target.value)}
+                                    style={{ marginBottom: '8px' }}
+                                />
+                                
+                                {/* Filtered course list */}
+                                {editCourseSearch && (
+                                    <div style={{ maxHeight: '140px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--bg-secondary)' }}>
+                                        {courses
+                                            .filter(c => c.name.toLowerCase().includes(editCourseSearch.toLowerCase()))
+                                            .map(c => (
+                                                <div
+                                                    key={c.id}
+                                                    style={{
+                                                        padding: '8px 12px',
+                                                        cursor: 'pointer',
+                                                        borderBottom: '1px solid var(--border)',
+                                                        background: editForm.subjects?.includes(c.id) ? 'var(--blue-bg)' : 'transparent',
+                                                        display: 'flex', justifyContent: 'space-between'
+                                                    }}
+                                                    onClick={() => toggleEditSubject(c.id)}
+                                                >
+                                                    <span>{c.name}</span>
+                                                    {editForm.subjects?.includes(c.id) && <span style={{ color: 'var(--blue)' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{verticalAlign:'middle'}}><polyline points="20 6 9 17 4 12"/></svg></span>}
+                                                </div>
+                                            ))
+                                        }
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -688,7 +787,7 @@ function HROnboarding() {
                             alignItems: 'center', justifyContent: 'center',
                             margin: '0 auto 16px', fontSize: '24px',
                         }}>
-                            🗑️
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                         </div>
                         <h3 style={{ marginBottom: '8px' }}>Delete Staff Member?</h3>
                         <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '24px' }}>
