@@ -35,12 +35,18 @@ function HROnboarding() {
     // Edit modal search
     const [editCourseSearch, setEditCourseSearch] = useState('');
 
-    // Course lazy loading state
+    // Subject lazy loading state
     const [courses, setCourses] = useState([]);
     const [coursePage, setCoursePage] = useState(1);
     const [courseHasNext, setCourseHasNext] = useState(false);
     const [courseSearch, setCourseSearch] = useState('');
     const [courseLoading, setCourseLoading] = useState(false);
+    
+    // Class/Course Filter state
+    const [classList, setClassList] = useState([]);
+    const [classFilter, setClassFilter] = useState('');
+    const [editClassFilter, setEditClassFilter] = useState('');
+    
     const courseListRef = useRef(null);
     const searchTimerRef = useRef(null);
 
@@ -48,9 +54,22 @@ function HROnboarding() {
         setCourseLoading(true);
         try {
             const params = new URLSearchParams({ page, page_size: 20 });
+            // SubjectListView doesn't support 'search' param natively in backend yet, so we will fetch all and filter in frontend if it's not paginated.
             if (search) params.set('search', search);
-            const data = await apiGet(`/api/classes/courses/?${params}`);
-            const results = data.results || [];
+            const data = await apiGet(`/api/classes/subjects/?${params}`);
+            
+            // Handle both paginated {results: []} and non-paginated [...] formats
+            let results = Array.isArray(data) ? data : (data.results || []);
+            
+            // Client-side filtering if backend didn't filter
+            if (search && Array.isArray(data)) {
+                const s = search.toLowerCase();
+                results = results.filter(sub => 
+                    sub.name.toLowerCase().includes(s) || 
+                    (sub.course_name && sub.course_name.toLowerCase().includes(s))
+                );
+            }
+            
             setCourses(prev => append ? [...prev, ...results] : results);
             setCoursePage(data.page || page);
             setCourseHasNext(data.has_next || false);
@@ -66,6 +85,10 @@ function HROnboarding() {
         try {
             const staffData = await apiGet('/api/admin/onboard-staff/');
             setStaff(Array.isArray(staffData) ? staffData : []);
+            
+            // Also load all classes for the filter dropdown
+            const classData = await apiGet('/api/classes/courses/');
+            setClassList(classData.results || (Array.isArray(classData) ? classData : []));
         } catch (err) {
             console.error(err);
         } finally {
@@ -255,7 +278,7 @@ function HROnboarding() {
     const approvedStaff = staff.filter(s => s.is_approved);
 
     return (
-        <StaffLayout title="Classes — HR Onboarding">
+        <StaffLayout title="Classes - HR Onboarding">
             <Head><title>HR Onboarding | Staff Portal</title></Head>
 
             {message && <div className="alert success" style={{ marginBottom: '20px' }}>{message}</div>}
@@ -327,7 +350,6 @@ function HROnboarding() {
                                 onChange={(e) => setRole(e.target.value)}
                             >
                                 <option value="teacher">Teacher</option>
-                                <option value="mentor">Mentor</option>
                             </select>
                         </div>
                         {role === 'teacher' && (
@@ -370,14 +392,27 @@ function HROnboarding() {
                                 </div>
                             )}
 
-                            {/* Search input */}
+                            {/* Search input for Class */}
+                            <select
+                                className="input"
+                                value={classFilter}
+                                onChange={(e) => setClassFilter(e.target.value)}
+                                style={{ marginTop: '4px', marginBottom: '8px' }}
+                            >
+                                <option value="">-- All Classes --</option>
+                                {classList.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                            </select>
+
+                            {/* Search input for Subject */}
                             <input
                                 className="input"
                                 type="text"
-                                placeholder="Search courses..."
+                                placeholder="Search subjects..."
                                 value={courseSearch}
                                 onChange={(e) => handleCourseSearch(e.target.value)}
-                                style={{ marginTop: '4px', marginBottom: '0' }}
+                                style={{ marginTop: '0', marginBottom: '0' }}
                             />
 
                             {/* Scrollable course list */}
@@ -391,10 +426,10 @@ function HROnboarding() {
                             >
                                 {courses.length === 0 && !courseLoading && (
                                     <div style={{ padding: '12px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
-                                        {courseSearch ? 'No courses found.' : 'Loading courses...'}
+                                        {courseSearch || classFilter ? 'No subjects found.' : 'Loading subjects...'}
                                     </div>
                                 )}
-                                {courses.map((c) => (
+                                {courses.filter(c => classFilter ? c.course === parseInt(classFilter) : true).map((c) => (
                                     <button
                                         key={c.id}
                                         type="button"
@@ -411,7 +446,7 @@ function HROnboarding() {
                                         onMouseLeave={(e) => { if (!selectedSubjects.includes(c.id)) e.target.style.background = 'transparent'; }}
                                         onClick={() => toggleSubject(c.id)}
                                     >
-                                        {selectedSubjects.includes(c.id) ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{verticalAlign:'middle',marginRight:'4px'}}><polyline points="20 6 9 17 4 12"/></svg></> : ''}{c.name}
+                                        {selectedSubjects.includes(c.id) ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{verticalAlign:'middle',marginRight:'4px'}}><polyline points="20 6 9 17 4 12"/></svg></> : ''}{c.name} {c.course_name ? `(${c.course_name})` : ''}
                                     </button>
                                 ))}
                                 {courseLoading && (
@@ -429,7 +464,7 @@ function HROnboarding() {
                                             cursor: 'pointer', fontSize: '0.82rem', fontFamily: 'inherit',
                                         }}
                                     >
-                                        Load more courses...
+                                        Load more subjects...
                                     </button>
                                 )}
                             </div>
@@ -482,7 +517,7 @@ function HROnboarding() {
                                         <tr key={s.id}>
                                             <td><strong>{s.first_name} {s.last_name}</strong></td>
                                             <td style={{ fontSize: '0.88rem' }}>{s.email}</td>
-                                            <td style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>{s.phone_number || '—'}</td>
+                                            <td style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>{s.phone_number || '-'}</td>
                                             <td>
                                                 <span className="badge" style={{
                                                     background: s.role === 'teacher' ? 'var(--blue-bg)' : 'var(--purple-bg)',
@@ -491,11 +526,11 @@ function HROnboarding() {
                                                     {s.role}
                                                 </span>
                                             </td>
-                                            <td style={{ fontSize: '0.88rem' }}>{s.role === 'teacher' ? `₹${s.hourly_rate}` : '—'}</td>
+                                            <td style={{ fontSize: '0.88rem' }}>{s.role === 'teacher' ? `₹${s.hourly_rate}` : '-'}</td>
                                             <td style={{ fontSize: '0.85rem' }}>
                                                 {s.subjects && s.subjects.length > 0
                                                     ? s.subjects.map(sub => sub.name).join(', ')
-                                                    : <span style={{ color: 'var(--text-secondary)' }}>—</span>
+                                                    : <span style={{ color: 'var(--text-secondary)' }}>-</span>
                                                 }
                                             </td>
                                             <td>
@@ -578,7 +613,7 @@ function HROnboarding() {
                                         <tr key={s.id}>
                                             <td><strong>{s.first_name} {s.last_name}</strong></td>
                                             <td style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>{s.email}</td>
-                                            <td style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>{s.phone_number || '—'}</td>
+                                            <td style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>{s.phone_number || '-'}</td>
                                             <td>
                                                 <span className="badge" style={{
                                                     background: s.role === 'teacher' ? 'var(--blue-bg)' : 'var(--purple-bg)',
@@ -587,7 +622,7 @@ function HROnboarding() {
                                                     {s.role}
                                                 </span>
                                             </td>
-                                            <td style={{ fontSize: '0.88rem' }}>{s.role === 'teacher' ? `₹${s.hourly_rate}` : '—'}</td>
+                                            <td style={{ fontSize: '0.88rem' }}>{s.role === 'teacher' ? `₹${s.hourly_rate}` : '-'}</td>
                                             <td style={{ fontSize: '0.85rem' }}>
                                                 {s.subjects && s.subjects.length > 0 ? (
                                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
@@ -603,7 +638,7 @@ function HROnboarding() {
                                                         ))}
                                                     </div>
                                                 ) : (
-                                                    <span style={{ color: 'var(--text-secondary)' }}>—</span>
+                                                    <span style={{ color: 'var(--text-secondary)' }}>-</span>
                                                 )}
                                             </td>
                                             <td style={{ color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
@@ -666,7 +701,7 @@ function HROnboarding() {
                         <h3 className="section-title" style={{ marginBottom: '20px' }}>
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                                Edit Staff — {editingStaff.email}
+                                Edit Staff - {editingStaff.email}
                             </span>
                         </h3>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
@@ -723,40 +758,52 @@ function HROnboarding() {
                                     </div>
                                 )}
 
-                                {/* Search input */}
+                                {/* Search input for Class */}
+                                <select
+                                    className="input"
+                                    value={editClassFilter}
+                                    onChange={(e) => setEditClassFilter(e.target.value)}
+                                    style={{ marginBottom: '8px' }}
+                                >
+                                    <option value="">-- All Classes --</option>
+                                    {classList.map(c => (
+                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                    ))}
+                                </select>
+
+                                {/* Search input for Subject */}
                                 <input
                                     className="input"
                                     type="text"
-                                    placeholder="Search to add subjects..."
+                                    placeholder="Search subjects..."
                                     value={editCourseSearch}
                                     onChange={(e) => setEditCourseSearch(e.target.value)}
                                     style={{ marginBottom: '8px' }}
                                 />
                                 
                                 {/* Filtered course list */}
-                                {editCourseSearch && (
-                                    <div style={{ maxHeight: '140px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--bg-secondary)' }}>
-                                        {courses
-                                            .filter(c => c.name.toLowerCase().includes(editCourseSearch.toLowerCase()))
-                                            .map(c => (
-                                                <div
-                                                    key={c.id}
-                                                    style={{
-                                                        padding: '8px 12px',
-                                                        cursor: 'pointer',
-                                                        borderBottom: '1px solid var(--border)',
-                                                        background: editForm.subjects?.includes(c.id) ? 'var(--blue-bg)' : 'transparent',
-                                                        display: 'flex', justifyContent: 'space-between'
-                                                    }}
-                                                    onClick={() => toggleEditSubject(c.id)}
-                                                >
-                                                    <span>{c.name}</span>
-                                                    {editForm.subjects?.includes(c.id) && <span style={{ color: 'var(--blue)' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{verticalAlign:'middle'}}><polyline points="20 6 9 17 4 12"/></svg></span>}
-                                                </div>
-                                            ))
-                                        }
-                                    </div>
-                                )}
+                                <div style={{ maxHeight: '140px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--bg-secondary)' }}>
+                                    {courses
+                                        .filter(c => editClassFilter ? c.course === parseInt(editClassFilter) : true)
+                                        .filter(c => editCourseSearch ? (c.name.toLowerCase().includes(editCourseSearch.toLowerCase()) || (c.course_name && c.course_name.toLowerCase().includes(editCourseSearch.toLowerCase()))) : true)
+                                        .map(c => (
+                                            <div
+                                                key={c.id}
+                                                style={{
+                                                    padding: '8px 12px',
+                                                    cursor: 'pointer',
+                                                    borderBottom: '1px solid var(--border)',
+                                                    background: editForm.subjects?.includes(c.id) ? 'var(--blue-bg)' : 'transparent',
+                                                    display: 'flex', justifyContent: 'space-between'
+                                                }}
+                                                onClick={() => toggleEditSubject(c.id)}
+                                            >
+                                                <span>{c.name} {c.course_name ? `(${c.course_name})` : ''}</span>
+                                                {editForm.subjects?.includes(c.id) && <span style={{ color: 'var(--blue)' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{verticalAlign:'middle'}}><polyline points="20 6 9 17 4 12"/></svg></span>}
+                                            </div>
+                                        ))
+                                    }
+                                </div>
                             </div>
                         )}
 

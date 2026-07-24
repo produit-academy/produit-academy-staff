@@ -247,7 +247,7 @@ function Payroll() {
                     }} onClick={(e) => e.stopPropagation()}>
                         <h3 className="section-title" style={{ marginBottom: '20px' }}>
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                                Adjust Wallet — {adjustWallet.staff_name}
+                                Adjust Wallet - {adjustWallet.staff_name}
                             </span>
                         </h3>
                         <form onSubmit={handleAdjustSubmit}>

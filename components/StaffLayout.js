@@ -87,7 +87,7 @@ export default function StaffLayout({ children, title }) {
     const isSuperAdmin = user?.is_superuser;
 
     useEffect(() => {
-        // Only staff need to fetch module access — admin/manager see everything
+        // Only staff need to fetch module access - admin/manager see everything
         if (isStaff) {
             apiGet('/api/staff/modules/')
                 .then(data => setModules(data.modules || []))
@@ -143,13 +143,13 @@ export default function StaffLayout({ children, title }) {
                 </div>
 
                 <nav className="sidebar-nav">
-                    {/* Overview — all roles */}
+                    {/* Overview - all roles */}
                     <div className="nav-section">
                         <div className="nav-title">Overview</div>
                         {navLink('/', 'dashboard', 'Dashboard')}
                     </div>
 
-                    {/* Staff self-service — staff & manager */}
+                    {/* Staff self-service - staff & manager */}
                     {(isStaff || isManager) && (
                         <div className="nav-section">
                             <div className="nav-title">My Work</div>
@@ -159,7 +159,7 @@ export default function StaffLayout({ children, title }) {
                         </div>
                     )}
 
-                    {/* Module-specific items — staff only */}
+                    {/* Module-specific items - staff only */}
                     {isStaff && moduleNavItems.length > 0 && (
                         <div className="nav-section">
                             <div className="nav-title">My Modules</div>
@@ -167,7 +167,7 @@ export default function StaffLayout({ children, title }) {
                         </div>
                     )}
 
-                    {/* Manager / Admin — HR & Management */}
+                    {/* Manager / Admin - HR & Management */}
                     {(isManager || isAdmin) && (
                         <div className="nav-section">
                             <div className="nav-title">Management</div>
@@ -177,7 +177,7 @@ export default function StaffLayout({ children, title }) {
                         </div>
                     )}
 
-                    {/* HR & Recruitment — HR staff only (not admin) */}
+                    {/* HR & Recruitment - HR staff only (not admin) */}
                     {isHR && (
                         <div className="nav-section">
                             <div className="nav-title">HR & Recruitment</div>
@@ -195,7 +195,7 @@ export default function StaffLayout({ children, title }) {
                         </div>
                     )}
 
-                    {/* Super Admin — super admin only */}
+                    {/* Super Admin - super admin only */}
                     {isSuperAdmin && (
                         <div className="nav-section">
                             <div className="nav-title">Super Admin</div>
