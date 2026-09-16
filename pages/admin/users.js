@@ -33,6 +33,7 @@ function AdminUsers() {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [existingUserData, setExistingUserData] = useState(null);
     const [filterType, setFilterType] = useState('');
     const [showForm, setShowForm] = useState(false);
     const [accountType, setAccountType] = useState('platform_admin');
@@ -40,10 +41,14 @@ function AdminUsers() {
         first_name: '', last_name: '', email: '', password: '',
         phone_number: '', platform: 'gate', assigned_platforms: ['gate'],
         department_name: '', designation: '', modules: [],
+        upgrade_existing: false,
     });
 
     const [editUser, setEditUser] = useState(null);
-    const [editForm, setEditForm] = useState({ first_name: '', last_name: '', email: '', phone_number: '' });
+    const [editForm, setEditForm] = useState({
+        first_name: '', last_name: '', email: '', phone_number: '',
+        designation: '', department_name: '', modules: []
+    });
 
     useEffect(() => { loadUsers(); }, []);
 
@@ -54,7 +59,10 @@ function AdminUsers() {
         finally { setLoading(false); }
     };
 
-    const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+    const handleChange = (e) => {
+        const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+        setForm({ ...form, [e.target.name]: value });
+    };
 
     const togglePlatform = (p) => {
         const current = form.assigned_platforms;
@@ -74,14 +82,25 @@ function AdminUsers() {
         }
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const toggleEditModule = (m) => {
+        const current = editForm.modules || [];
+        if (current.includes(m)) {
+            setEditForm({ ...editForm, modules: current.filter(x => x !== m) });
+        } else {
+            setEditForm({ ...editForm, modules: [...current, m] });
+        }
+    };
+
+    const handleSubmit = async (e, forceUpgrade = false) => {
+        if (e && e.preventDefault) e.preventDefault();
         setSubmitting(true); setError(''); setSuccess('');
 
+        const shouldUpgrade = forceUpgrade || form.upgrade_existing;
         const payload = {
             first_name: form.first_name, last_name: form.last_name,
             email: form.email, password: form.password,
             phone_number: form.phone_number, account_type: accountType,
+            upgrade_existing: shouldUpgrade,
         };
 
         if (accountType === 'platform_admin') {
@@ -99,12 +118,27 @@ function AdminUsers() {
             const data = await res.json();
             if (res.ok) {
                 setSuccess(data.message || 'Account created successfully.');
-                setForm(prev => ({ ...prev, first_name: '', last_name: '', email: '', password: '', phone_number: '', department_name: '', designation: '', modules: [] }));
+                setExistingUserData(null);
+                setForm(prev => ({
+                    ...prev, first_name: '', last_name: '', email: '', password: '',
+                    phone_number: '', department_name: '', designation: '', modules: [],
+                    upgrade_existing: false,
+                }));
                 setShowForm(false);
                 loadUsers();
-            } else { setError(data.error || JSON.stringify(data)); }
-        } catch { setError('Network error.'); }
-        finally { setSubmitting(false); }
+            } else {
+                if (data.user_exists && data.existing_user) {
+                    setExistingUserData(data.existing_user);
+                } else {
+                    setExistingUserData(null);
+                }
+                setError(data.error || JSON.stringify(data));
+            }
+        } catch {
+            setError('Network error.');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const handleDelete = async (id, email) => {
@@ -122,6 +156,9 @@ function AdminUsers() {
             last_name: u.last_name || '',
             email: u.email || '',
             phone_number: u.phone_number || '',
+            designation: u.designation || '',
+            department_name: u.department_name || '',
+            modules: Array.isArray(u.modules) ? u.modules : [],
         });
     };
 
@@ -138,6 +175,7 @@ function AdminUsers() {
             } else { setError(data.error || 'Failed to update user.'); }
         } catch { setError('Network error.'); }
     };
+
 
     const getTypeBadge = (u) => {
         if (u.role === 'manager') return { label: 'Manager', color: '#d97706', bg: '#fef3c7' };
@@ -181,7 +219,39 @@ function AdminUsers() {
             <Head><title>User Management | Staff Portal</title></Head>
 
             {success && <div className="alert success" style={{ marginBottom: '16px' }}>{success}</div>}
-            {error && <div className="alert error" style={{ marginBottom: '16px' }}>{error}</div>}
+            
+            {existingUserData ? (
+                <div style={{
+                    padding: '16px 20px', borderRadius: '10px', marginBottom: '18px',
+                    background: '#fffbeb', border: '1px solid #fef3c7', color: '#92400e',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
+                }}>
+                    <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span>⚠️ Existing User Detected</span>
+                            <span className="badge" style={{ background: '#fde68a', color: '#854d0e', fontSize: '0.75rem' }}>
+                                {existingUserData.role_display}
+                            </span>
+                        </div>
+                        <div style={{ fontSize: '0.84rem', color: '#b45309', lineHeight: 1.4 }}>
+                            An account with email <strong>{existingUserData.email}</strong> is currently registered as a {existingUserData.role_display}.
+                            Would you like to upgrade this account to <strong>{ACCOUNT_TYPES.find(t => t.key === accountType)?.label || 'Staff'}</strong> and grant the selected department & module permissions?
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        className="btn primary"
+                        disabled={submitting}
+                        onClick={() => handleSubmit(null, true)}
+                        style={{ padding: '9px 22px', fontSize: '0.88rem', whiteSpace: 'nowrap', background: '#d97706', borderColor: '#b45309' }}
+                    >
+                        {submitting ? 'Upgrading...' : `Upgrade to ${ACCOUNT_TYPES.find(t => t.key === accountType)?.label || 'Staff'} Now`}
+                    </button>
+                </div>
+            ) : error ? (
+                <div className="alert error" style={{ marginBottom: '16px' }}>{error}</div>
+            ) : null}
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -251,7 +321,7 @@ function AdminUsers() {
                             </div>
                         )}
 
-                        {/* Platform for Support/Contact */}
+                        {/* Assigned Platforms for Support / Contact */}
                         {needsPlatformSelect && (
                             <div style={{ marginBottom: '16px' }}>
                                 <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Assigned Platform(s)</label>
@@ -264,7 +334,7 @@ function AdminUsers() {
                                                 borderColor: form.assigned_platforms.includes(p.key) ? 'var(--accent)' : 'var(--border)',
                                                 padding: '8px 20px', fontSize: '0.85rem',
                                             }}>
-                                            {p.label}
+                                            {p.label} {form.assigned_platforms.includes(p.key) ? '✓' : ''}
                                         </button>
                                     ))}
                                 </div>
@@ -285,7 +355,7 @@ function AdminUsers() {
                             </div>
                         )}
 
-                        {/* Custom Staff - department & modules */}
+                        {/* Custom Staff Fields: Department, Designation, Modules */}
                         {accountType === 'custom_staff' && (
                             <>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
@@ -313,7 +383,7 @@ function AdminUsers() {
                                                     borderColor: form.modules.includes(m.key) ? 'var(--accent)' : 'var(--border)',
                                                     padding: '6px 14px', fontSize: '0.82rem',
                                                 }}>
-                                                {m.label}
+                                                {m.label} {form.modules.includes(m.key) ? '✓' : ''}
                                             </button>
                                         ))}
                                     </div>
@@ -355,13 +425,27 @@ function AdminUsers() {
                                 </span>
                             </div>
                         </div>
-                        <div style={{ marginTop: '12px' }}>
-                            <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Phone</label>
-                            <input className="input" name="phone_number" value={form.phone_number} onChange={handleChange} style={{ padding: '10px 14px', maxWidth: '300px' }} />
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px', alignItems: 'center' }}>
+                            <div>
+                                <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Phone</label>
+                                <input className="input" name="phone_number" value={form.phone_number} onChange={handleChange} style={{ padding: '10px 14px' }} />
+                            </div>
+                            <div style={{ paddingTop: '20px' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 500 }}>
+                                    <input
+                                        type="checkbox"
+                                        name="upgrade_existing"
+                                        checked={form.upgrade_existing}
+                                        onChange={handleChange}
+                                        style={{ width: '16px', height: '16px', accentColor: 'var(--accent)' }}
+                                    />
+                                    Upgrade account if email exists (e.g. convert Student to Staff)
+                                </label>
+                            </div>
                         </div>
 
                         <button type="submit" className="btn primary" disabled={submitting} style={{ marginTop: '16px', padding: '10px 24px' }}>
-                            {submitting ? 'Creating...' : 'Create Account'}
+                            {submitting ? 'Processing...' : 'Create / Upgrade Account'}
                         </button>
                     </form>
                 </div>
@@ -374,7 +458,7 @@ function AdminUsers() {
                 <div className="table-wrapper">
                     <table className="table">
                         <thead>
-                            <tr><th>Name</th><th>Type</th><th>Platform/Dept</th><th>Email</th><th>Joined</th><th></th></tr>
+                            <tr><th>Name</th><th>Type</th><th>Platform / Department</th><th>Email</th><th>Joined</th><th></th></tr>
                         </thead>
                         <tbody>
                             {filteredUsers.map(u => {
@@ -383,7 +467,22 @@ function AdminUsers() {
                                     <tr key={u.id}>
                                         <td><strong>{u.first_name} {u.last_name}</strong></td>
                                         <td><span className="badge" style={{ background: badge.bg, color: badge.color }}>{badge.label}</span></td>
-                                        <td style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{getPlatformLabel(u)}</td>
+                                        <td>
+                                            <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{getPlatformLabel(u)}</div>
+                                            {Array.isArray(u.modules) && u.modules.length > 0 && (
+                                                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '4px' }}>
+                                                    {u.modules.map(m => (
+                                                        <span key={m} className="badge" style={{
+                                                            fontSize: '0.68rem', padding: '1px 6px',
+                                                            background: m === 'support' ? 'var(--red-bg)' : m === 'careers' ? 'var(--purple-bg)' : m === 'classes' ? 'var(--green-bg)' : m === 'gate_content' ? 'var(--blue-bg)' : 'var(--yellow-bg)',
+                                                            color: m === 'support' ? 'var(--red)' : m === 'careers' ? 'var(--purple)' : m === 'classes' ? 'var(--green)' : m === 'gate_content' ? 'var(--blue)' : 'var(--yellow)'
+                                                        }}>
+                                                            {m === 'gate_content' ? 'GATE' : m.toUpperCase()}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </td>
                                         <td style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{u.email}</td>
                                         <td style={{ whiteSpace: 'nowrap', fontSize: '0.82rem' }}>{new Date(u.date_joined).toLocaleDateString()}</td>
                                         <td>
@@ -416,7 +515,7 @@ function AdminUsers() {
                     backdropFilter: 'blur(4px)',
                 }} onClick={() => setEditUser(null)}>
                     <div className="card" style={{
-                        width: '100%', maxWidth: '500px', margin: '20px',
+                        width: '100%', maxWidth: '580px', margin: '20px', maxHeight: '90vh', overflowY: 'auto',
                         animation: 'fadeIn 0.2s ease',
                     }} onClick={(e) => e.stopPropagation()}>
                         <h3 className="section-title" style={{ marginBottom: '20px' }}>
@@ -446,8 +545,44 @@ function AdminUsers() {
                                     <input className="input" type="tel" value={editForm.phone_number}
                                         onChange={(e) => setEditForm({ ...editForm, phone_number: e.target.value })} />
                                 </div>
+                                <div>
+                                    <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Department Name</label>
+                                    <input className="input" value={editForm.department_name}
+                                        placeholder="e.g. Technical"
+                                        onChange={(e) => setEditForm({ ...editForm, department_name: e.target.value })} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Designation</label>
+                                    <input className="input" value={editForm.designation}
+                                        placeholder="e.g. Tech Lead"
+                                        onChange={(e) => setEditForm({ ...editForm, designation: e.target.value })} />
+                                </div>
                             </div>
-                            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
+
+                            {/* Module Permissions in Edit Modal */}
+                            <div style={{ marginTop: '16px' }}>
+                                <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '8px' }}>Module Access Permissions</label>
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                    {ALL_MODULES.map(m => (
+                                        <button
+                                            key={m.key}
+                                            type="button"
+                                            onClick={() => toggleEditModule(m.key)}
+                                            className="btn"
+                                            style={{
+                                                background: (editForm.modules || []).includes(m.key) ? 'var(--accent-light)' : 'transparent',
+                                                color: (editForm.modules || []).includes(m.key) ? 'var(--accent-dark)' : 'var(--text-secondary)',
+                                                borderColor: (editForm.modules || []).includes(m.key) ? 'var(--accent)' : 'var(--border)',
+                                                padding: '6px 14px', fontSize: '0.82rem',
+                                            }}
+                                        >
+                                            {m.label} {(editForm.modules || []).includes(m.key) ? '✓' : ''}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '12px', marginTop: '24px', justifyContent: 'flex-end' }}>
                                 <button type="button" className="btn" style={{ padding: '8px 20px', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
                                     onClick={() => setEditUser(null)}>Cancel</button>
                                 <button type="submit" className="btn primary" style={{ padding: '8px 24px' }}>Save Changes</button>

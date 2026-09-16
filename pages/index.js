@@ -48,6 +48,8 @@ function Dashboard() {
         support: '/complaints',
         careers: '/applications',
         classes: '/classes/onboard',
+        gate_content: '/gate/materials',
+        analytics: '/admin/omni-dashboard',
     };
 
     const MODULE_COLORS = {

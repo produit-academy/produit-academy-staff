@@ -59,6 +59,11 @@ const ICONS = {
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
         </svg>
     ),
+    book: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+        </svg>
+    ),
 };
 
 const MODULE_NAV = {
@@ -70,7 +75,13 @@ const MODULE_NAV = {
         { label: 'Applications', href: '/applications', icon: 'briefcase' },
     ],
     classes: [
-        { label: 'HR Onboarding', href: '/classes/onboard', icon: 'user' },
+        { label: 'Teacher Onboarding', href: '/classes/onboard', icon: 'user' },
+    ],
+    gate_content: [
+        { label: 'GATE Materials', href: '/gate/materials', icon: 'book' },
+    ],
+    analytics: [
+        { label: 'Omni Telemetry & Stats', href: '/admin/omni-dashboard', icon: 'dashboard' },
     ],
 };
 

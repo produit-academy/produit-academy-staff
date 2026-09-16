@@ -65,6 +65,7 @@ function HRStaff() {
                                 <th>Email</th>
                                 <th>Role</th>
                                 <th>Department</th>
+                                <th>Modules</th>
                                 <th>Tasks</th>
                                 <th>Wallet</th>
                                 <th>Joined</th>
@@ -81,6 +82,23 @@ function HRStaff() {
                                         </span>
                                     </td>
                                     <td style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{s.department_name || s.designation || '--'}</td>
+                                    <td>
+                                        {Array.isArray(s.modules) && s.modules.length > 0 ? (
+                                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', maxWidth: '200px' }}>
+                                                {s.modules.map(m => (
+                                                    <span key={m} className="badge" style={{
+                                                        fontSize: '0.7rem', padding: '2px 6px',
+                                                        background: m === 'support' ? 'var(--red-bg)' : m === 'careers' ? 'var(--purple-bg)' : m === 'classes' ? 'var(--green-bg)' : m === 'gate_content' ? 'var(--blue-bg)' : 'var(--yellow-bg)',
+                                                        color: m === 'support' ? 'var(--red)' : m === 'careers' ? 'var(--purple)' : m === 'classes' ? 'var(--green)' : m === 'gate_content' ? 'var(--blue)' : 'var(--yellow)'
+                                                    }}>
+                                                        {m === 'gate_content' ? 'GATE' : m.toUpperCase()}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>--</span>
+                                        )}
+                                    </td>
                                     <td style={{ textAlign: 'center' }}>{s.task_count}</td>
                                     <td style={{ fontWeight: 600 }}>₹{s.wallet_balance}</td>
                                     <td style={{ whiteSpace: 'nowrap', fontSize: '0.82rem' }}>{new Date(s.date_joined).toLocaleDateString()}</td>

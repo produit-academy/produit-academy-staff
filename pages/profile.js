@@ -116,6 +116,54 @@ function Profile() {
                         )}
                     </div>
 
+                    {/* Assigned Module Permissions Card */}
+                    <div className="card" style={{ marginTop: '16px', borderTop: '3px solid var(--accent)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700 }}>Assigned Module Permissions</h3>
+                            <span className="badge" style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>
+                                {(profile.effective_modules || profile.assigned_modules || []).length} Modules Active
+                            </span>
+                        </div>
+                        <p style={{ margin: '0 0 16px', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                            Modules and features granted to your profile through department assignment and administrator permissions.
+                        </p>
+
+                        {((profile.effective_modules || profile.assigned_modules || []).length > 0) ? (
+                            <div style={{ display: 'grid', gap: '10px' }}>
+                                {[
+                                    { key: 'support', label: 'Support & Inquiries', desc: 'Manage user complaints and platform contact enquiries', href: '/complaints', color: 'var(--red)', bg: 'var(--red-bg)' },
+                                    { key: 'careers', label: 'Careers & Recruitment', desc: 'Review incoming teacher and staff job applications', href: '/applications', color: 'var(--purple)', bg: 'var(--purple-bg)' },
+                                    { key: 'classes', label: 'Classes & Teaching', desc: 'Onboarding teachers, curriculum management & session reviews', href: '/classes/onboard', color: 'var(--green)', bg: 'var(--green-bg)' },
+                                    { key: 'gate_content', label: 'GATE Content', desc: 'Access study materials, question repositories & guides', href: '/gate/materials', color: 'var(--blue)', bg: 'var(--blue-bg)' },
+                                    { key: 'analytics', label: 'Omni Telemetry & Stats', desc: 'Platform health monitoring, live activity feeds & system stats', href: '/admin/omni-dashboard', color: 'var(--yellow)', bg: 'var(--yellow-bg)' },
+                                ].filter(m => (profile.effective_modules || profile.assigned_modules || []).includes(m.key)).map(m => (
+                                    <div key={m.key} style={{
+                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                        padding: '12px 16px', borderRadius: '8px', border: '1px solid var(--border)',
+                                        background: 'var(--bg)', flexWrap: 'wrap', gap: '10px'
+                                    }}>
+                                        <div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                                <span className="badge" style={{ background: m.bg, color: m.color, fontWeight: 700 }}>
+                                                    {m.label}
+                                                </span>
+                                                <span style={{ fontSize: '0.74rem', color: '#10b981', fontWeight: 600 }}>✓ Granted</span>
+                                            </div>
+                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{m.desc}</div>
+                                        </div>
+                                        <a href={m.href} className="btn" style={{ fontSize: '0.78rem', padding: '6px 14px', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+                                            Open Module →
+                                        </a>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div style={{ padding: '16px', background: 'var(--bg)', borderRadius: '8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                No specific modules assigned to this profile yet. If you require access to Support, Careers, Classes, or GATE modules, contact your administrator.
+                            </div>
+                        )}
+                    </div>
+
                     {/* Change Password Card */}
                     <PasswordChangeCard />
                 </div>

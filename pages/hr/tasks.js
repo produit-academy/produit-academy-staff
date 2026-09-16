@@ -23,6 +23,11 @@ function HRTasks() {
     const [evalNotes, setEvalNotes] = useState('');
     const [paymentLoading, setPaymentLoading] = useState(false);
 
+    // Edit Task Modal State
+    const [editTask, setEditTask] = useState(null);
+    const [editForm, setEditForm] = useState({ title: '', description: '', assigned_to: '', due_date: '', status: '', remarks: '' });
+    const [editLoading, setEditLoading] = useState(false);
+
     useEffect(() => {
         Promise.all([loadTasks(), loadStaff()]).finally(() => setLoading(false));
     }, []);
@@ -56,6 +61,49 @@ function HRTasks() {
             loadTasks();
         } catch (err) {
             alert('Failed to create task.');
+        }
+    };
+
+    const openEditTask = (task) => {
+        setEditTask(task);
+        setEditForm({
+            title: task.title || '',
+            description: task.description || '',
+            assigned_to: task.assigned_to ? String(task.assigned_to) : '',
+            due_date: task.due_date ? task.due_date.slice(0, 10) : '',
+            status: task.status || 'assigned',
+            remarks: task.remarks || '',
+        });
+    };
+
+    const handleSaveTaskEdit = async (e) => {
+        e.preventDefault();
+        if (!editTask) return;
+        if (!editForm.title.trim()) return alert('Task title is required.');
+        if (!editForm.assigned_to) return alert('Assignee is required.');
+
+        setEditLoading(true);
+        try {
+            const payload = {
+                title: editForm.title.trim(),
+                description: editForm.description.trim(),
+                assigned_to: parseInt(editForm.assigned_to),
+                due_date: editForm.due_date || null,
+                status: editForm.status,
+                remarks: editForm.remarks.trim(),
+            };
+            const res = await apiPatch(`/api/staff/manager/tasks/${editTask.id}/`, payload);
+            const d = await res.json();
+            if (res.ok) {
+                setEditTask(null);
+                loadTasks();
+            } else {
+                alert(d.error || 'Failed to update task.');
+            }
+        } catch {
+            alert('Network error updating task.');
+        } finally {
+            setEditLoading(false);
         }
     };
 
@@ -399,6 +447,14 @@ function HRTasks() {
 
                                         <button
                                             className="btn"
+                                            onClick={() => openEditTask(task)}
+                                            style={{ fontSize: '0.82rem', padding: '6px 12px', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+                                        >
+                                            ✏️ Edit
+                                        </button>
+
+                                        <button
+                                            className="btn"
                                             onClick={() => deleteTask(task.id)}
                                             style={{ fontSize: '0.78rem', padding: '6px 10px', color: 'var(--red)', border: '1px solid #fecaca' }}
                                         >
@@ -570,6 +626,128 @@ function HRTasks() {
                                 {paymentLoading ? 'Saving...' : 'Assign Amount'}
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* EDIT TASK MODAL */}
+            {editTask && (
+                <div className="overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                    <div className="card" style={{ maxWidth: '560px', width: '90%', maxHeight: '90vh', overflowY: 'auto', padding: '24px' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>
+                                ✏️ Edit Staff Task #{editTask.id}
+                            </h3>
+                            <button onClick={() => setEditTask(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem' }}>✕</button>
+                        </div>
+
+                        <form onSubmit={handleSaveTaskEdit}>
+                            <div style={{ marginBottom: '14px' }}>
+                                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px' }}>
+                                    Task Title *
+                                </label>
+                                <input
+                                    type="text"
+                                    className="input"
+                                    required
+                                    value={editForm.title}
+                                    onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+                                    style={{ width: '100%', padding: '10px 12px' }}
+                                />
+                            </div>
+
+                            <div style={{ marginBottom: '14px' }}>
+                                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px' }}>
+                                    Detailed Requirements & Deliverables
+                                </label>
+                                <textarea
+                                    className="input"
+                                    rows={3}
+                                    value={editForm.description}
+                                    onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                                    style={{ width: '100%', padding: '10px 12px', resize: 'vertical' }}
+                                />
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px' }}>
+                                        Assignee *
+                                    </label>
+                                    <select
+                                        className="input"
+                                        required
+                                        value={editForm.assigned_to}
+                                        onChange={e => setEditForm(f => ({ ...f, assigned_to: e.target.value }))}
+                                        style={{ width: '100%', padding: '10px 12px' }}
+                                    >
+                                        <option value="">Select Staff Member</option>
+                                        {staff.map(s => (
+                                            <option key={s.id} value={s.id}>{s.full_name} ({s.role})</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px' }}>
+                                        Due Date
+                                    </label>
+                                    <input
+                                        type="date"
+                                        className="input"
+                                        value={editForm.due_date}
+                                        onChange={e => setEditForm(f => ({ ...f, due_date: e.target.value }))}
+                                        style={{ width: '100%', padding: '10px 12px' }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px' }}>
+                                        Task Status
+                                    </label>
+                                    <select
+                                        className="input"
+                                        value={editForm.status}
+                                        onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}
+                                        style={{ width: '100%', padding: '10px 12px' }}
+                                    >
+                                        <option value="assigned">Assigned</option>
+                                        <option value="in_progress">In Progress</option>
+                                        <option value="submitted_for_review">Submitted for Review</option>
+                                        <option value="revision_required">Revision Required</option>
+                                        <option value="approved">Approved</option>
+                                        <option value="completed">Completed</option>
+                                        <option value="cancelled">Cancelled</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px' }}>
+                                        Remarks / Notes
+                                    </label>
+                                    <input
+                                        type="text"
+                                        className="input"
+                                        placeholder="Internal notes..."
+                                        value={editForm.remarks}
+                                        onChange={e => setEditForm(f => ({ ...f, remarks: e.target.value }))}
+                                        style={{ width: '100%', padding: '10px 12px' }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+                                <button type="button" className="btn" onClick={() => setEditTask(null)}>Cancel</button>
+                                <button
+                                    type="submit"
+                                    className="btn primary"
+                                    disabled={editLoading}
+                                    style={{ padding: '8px 22px' }}
+                                >
+                                    {editLoading ? 'Saving Changes...' : 'Save Task Changes'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
