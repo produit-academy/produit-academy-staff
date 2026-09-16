@@ -199,6 +199,7 @@ export default function StaffLayout({ children, title }) {
                     {isSuperAdmin && (
                         <div className="nav-section">
                             <div className="nav-title">Super Admin</div>
+                            {navLink('/admin/omni-dashboard', 'dashboard', 'Omni Command Center')}
                             {navLink('/admin/users', 'shield', 'User Management')}
                         </div>
                     )}

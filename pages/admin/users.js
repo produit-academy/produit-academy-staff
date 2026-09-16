@@ -334,12 +334,25 @@ function AdminUsers() {
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
                             <div>
-                                <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Email</label>
+                                <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Email *</label>
                                 <input className="input" type="email" name="email" required value={form.email} onChange={handleChange} style={{ padding: '10px 14px' }} />
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>Password</label>
-                                <input className="input" type="text" name="password" required minLength="6" value={form.password} onChange={handleChange} style={{ padding: '10px 14px' }} />
+                                <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px' }}>
+                                    Password (Optional)
+                                </label>
+                                <input
+                                    className="input"
+                                    type="text"
+                                    name="password"
+                                    placeholder="Leave blank to auto-generate & email"
+                                    value={form.password}
+                                    onChange={handleChange}
+                                    style={{ padding: '10px 14px' }}
+                                />
+                                <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--accent-dark)', marginTop: '4px' }}>
+                                    ✓ System auto-generates secure password and emails credentials
+                                </span>
                             </div>
                         </div>
                         <div style={{ marginTop: '12px' }}>

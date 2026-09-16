@@ -10,20 +10,35 @@ function HRTasks() {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
     const [showForm, setShowForm] = useState(false);
-    const [form, setForm] = useState({ title: '', description: '', assigned_to: '', due_date: '', payment_amount: '' });
+    const [form, setForm] = useState({ title: '', description: '', assigned_to: '', due_date: '' });
+
+    // Review Modal State
+    const [reviewTask, setReviewTask] = useState(null);
+    const [reviewFeedback, setReviewFeedback] = useState('');
+    const [reviewLoading, setReviewLoading] = useState(false);
+
+    // Payment Evaluation Modal State
+    const [paymentTask, setPaymentTask] = useState(null);
+    const [evalAmount, setEvalAmount] = useState('');
+    const [evalNotes, setEvalNotes] = useState('');
+    const [paymentLoading, setPaymentLoading] = useState(false);
 
     useEffect(() => {
         Promise.all([loadTasks(), loadStaff()]).finally(() => setLoading(false));
     }, []);
 
     const loadTasks = async () => {
-        try { setTasks(await apiGet('/api/staff/manager/tasks/')); }
-        catch { }
+        try {
+            const data = await apiGet('/api/staff/manager/tasks/');
+            setTasks(Array.isArray(data) ? data : []);
+        } catch { }
     };
 
     const loadStaff = async () => {
-        try { setStaff(await apiGet('/api/staff/manager/staff/')); }
-        catch { }
+        try {
+            const data = await apiGet('/api/staff/manager/staff/');
+            setStaff(Array.isArray(data) ? data : []);
+        } catch { }
     };
 
     const createTask = async () => {
@@ -34,13 +49,110 @@ function HRTasks() {
                 description: form.description,
                 assigned_to: parseInt(form.assigned_to),
                 due_date: form.due_date || null,
-                payment_amount: form.payment_amount || 0,
             };
             await apiPost('/api/staff/manager/tasks/create/', data);
-            setForm({ title: '', description: '', assigned_to: '', due_date: '', payment_amount: '' });
+            setForm({ title: '', description: '', assigned_to: '', due_date: '' });
             setShowForm(false);
             loadTasks();
-        } catch { }
+        } catch (err) {
+            alert('Failed to create task.');
+        }
+    };
+
+    const handleReviewAction = async (action) => {
+        if (!reviewTask) return;
+        if (action === 'request_revision' && !reviewFeedback.trim()) {
+            alert('Please provide feedback explaining the requested changes.');
+            return;
+        }
+
+        setReviewLoading(true);
+        try {
+            const res = await apiPost(`/api/staff/manager/tasks/${reviewTask.id}/review/`, {
+                action,
+                feedback: reviewFeedback.trim()
+            });
+            const d = await res.json();
+            if (res.ok) {
+                setReviewTask(null);
+                setReviewFeedback('');
+                loadTasks();
+            } else {
+                alert(d.error || 'Failed to submit review.');
+            }
+        } catch {
+            alert('Network error during review.');
+        } finally {
+            setReviewLoading(false);
+        }
+    };
+
+    const handleAssignPayment = async () => {
+        if (!paymentTask) return;
+        if (!evalAmount || parseFloat(evalAmount) <= 0) {
+            alert('Please enter a valid compensation amount.');
+            return;
+        }
+
+        setPaymentLoading(true);
+        try {
+            const res = await apiPost(`/api/staff/manager/tasks/${paymentTask.id}/payment/`, {
+                action: 'assign_amount',
+                amount: evalAmount,
+                notes: evalNotes
+            });
+            const d = await res.json();
+            if (res.ok) {
+                setPaymentTask(null);
+                setEvalAmount('');
+                setEvalNotes('');
+                loadTasks();
+            } else {
+                alert(d.error || 'Failed to assign payment.');
+            }
+        } catch {
+            alert('Network error assigning payment.');
+        } finally {
+            setPaymentLoading(false);
+        }
+    };
+
+    const handleApprovePayment = async (taskId) => {
+        setPaymentLoading(true);
+        try {
+            const res = await apiPost(`/api/staff/manager/tasks/${taskId}/payment/`, {
+                action: 'approve_payment',
+                notes: 'Payment approved by manager'
+            });
+            const d = await res.json();
+            if (res.ok) {
+                loadTasks();
+            } else {
+                alert(d.error || 'Failed to approve payment.');
+            }
+        } catch {
+            alert('Network error approving payment.');
+        } finally {
+            setPaymentLoading(false);
+        }
+    };
+
+    const handleCreditWallet = async (task) => {
+        if (!confirm(`Credit ₹${task.payment_amount} to ${task.assigned_to_name}'s wallet?`)) return;
+        try {
+            const res = await apiPost(`/api/staff/manager/tasks/${task.id}/pay/`, {
+                amount: task.payment_amount
+            });
+            const d = await res.json();
+            if (res.ok) {
+                alert(d.message || 'Wallet credited successfully!');
+                loadTasks();
+            } else {
+                alert(d.error || 'Failed to credit wallet.');
+            }
+        } catch {
+            alert('Network error processing wallet payout.');
+        }
     };
 
     const deleteTask = async (id) => {
@@ -51,147 +163,415 @@ function HRTasks() {
         } catch { }
     };
 
-    const revertTask = async (task) => {
-        if (task.is_paid) return alert('Cannot revert a paid task.');
-        if (!confirm('Revert this task to In Progress?')) return;
-        try {
-            await apiPatch(`/api/staff/manager/tasks/${task.id}/`, { status: 'in_progress' });
-            loadTasks();
-        } catch { }
+    const filtered = tasks.filter(t => {
+        if (filter === 'all') return true;
+        if (filter === 'review') return t.status === 'submitted_for_review';
+        if (filter === 'active') return ['assigned', 'in_progress', 'revision_required'].includes(t.status);
+        if (filter === 'completed') return ['approved', 'completed'].includes(t.status);
+        return t.status === filter;
+    });
+
+    const getStatusBadge = (status) => {
+        switch (status) {
+            case 'assigned':
+                return <span className="status-badge badge-assigned">Assigned</span>;
+            case 'in_progress':
+                return <span className="status-badge badge-in-progress">In Progress</span>;
+            case 'submitted_for_review':
+                return <span className="status-badge badge-submitted">In Review</span>;
+            case 'revision_required':
+                return <span className="status-badge badge-revision">Revision Req</span>;
+            case 'approved':
+                return <span className="status-badge badge-approved">Approved</span>;
+            case 'completed':
+                return <span className="status-badge badge-completed">Completed</span>;
+            default:
+                return <span className="status-badge">{status}</span>;
+        }
     };
 
-    const filtered = tasks.filter(t => filter === 'all' || t.status === filter);
-
-    const statusColor = (s) => {
-        if (s === 'completed') return 'var(--green)';
-        if (s === 'in_progress') return 'var(--accent)';
-        return 'var(--text-secondary)';
-    };
-
-    const statusBg = (s) => {
-        if (s === 'completed') return 'var(--green-bg)';
-        if (s === 'in_progress') return 'var(--accent-light)';
-        return 'var(--bg-secondary)';
+    const getPaymentBadge = (status, amount) => {
+        const amtStr = amount > 0 ? ` ₹${amount}` : '';
+        switch (status) {
+            case 'not_assigned':
+                return <span className="payment-badge not-assigned">Postpaid Unassigned</span>;
+            case 'awaiting_review':
+                return <span className="payment-badge awaiting-review">Awaiting Review</span>;
+            case 'amount_assigned':
+                return <span className="payment-badge amount-assigned">Assigned:{amtStr}</span>;
+            case 'approved':
+                return <span className="payment-badge approved">Approved:{amtStr}</span>;
+            case 'paid':
+                return <span className="payment-badge paid">Paid:{amtStr}</span>;
+            default:
+                return <span className="payment-badge not-assigned">{status}</span>;
+        }
     };
 
     return (
-        <StaffLayout title="Task Management">
+        <StaffLayout title="HR & Operations // Task Management">
             <Head><title>Task Management | Staff Portal</title></Head>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '14px' }}>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {['all', 'pending', 'in_progress', 'completed'].map(f => (
-                        <button key={f} className={`btn ${filter === f ? 'primary' : ''}`}
-                            onClick={() => setFilter(f)}
-                            style={{ fontSize: '0.82rem', padding: '6px 14px', textTransform: 'capitalize' }}>
-                            {f === 'all' ? `All (${tasks.length})` : `${f.replace('_', ' ')} (${tasks.filter(t => t.status === f).length})`}
+                    {[
+                        { id: 'all', label: `All Tasks (${tasks.length})` },
+                        { id: 'review', label: `Deliverables In Review (${tasks.filter(t => t.status === 'submitted_for_review').length})` },
+                        { id: 'active', label: `Active (${tasks.filter(t => ['assigned', 'in_progress', 'revision_required'].includes(t.status)).length})` },
+                        { id: 'completed', label: `Approved / Done (${tasks.filter(t => ['approved', 'completed'].includes(t.status)).length})` },
+                    ].map(f => (
+                        <button
+                            key={f.id}
+                            className={`btn ${filter === f.id ? 'primary' : ''}`}
+                            onClick={() => setFilter(f.id)}
+                            style={{ fontSize: '0.82rem', padding: '7px 16px', borderRadius: '8px' }}
+                        >
+                            {f.label}
                         </button>
                     ))}
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                    <button className="btn" onClick={() => { setLoading(true); loadTasks().finally(() => setLoading(false)); }}
-                        style={{ fontSize: '0.82rem', padding: '6px 14px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 1 0 2.6-6.4L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 1 0-2.6 6.4L3 16"/></svg>
-                        Refresh Status
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                        className="btn"
+                        onClick={() => { setLoading(true); loadTasks().finally(() => setLoading(false)); }}
+                        style={{ fontSize: '0.82rem', padding: '7px 14px', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+                    >
+                        ↻ Refresh
                     </button>
-                    <button className="btn primary" onClick={() => setShowForm(!showForm)}
-                        style={{ fontSize: '0.85rem', padding: '8px 16px' }}>
-                        {showForm ? 'Cancel' : '+ Create Task'}
+                    <button
+                        className="btn primary"
+                        onClick={() => setShowForm(!showForm)}
+                        style={{ fontSize: '0.85rem', padding: '8px 18px', borderRadius: '8px' }}
+                    >
+                        {showForm ? 'Close Form' : '+ Create Task (Postpaid)'}
                     </button>
                 </div>
             </div>
 
-            {/* Create Task Form */}
+            {/* Create Task Form (Postpaid Model) */}
             {showForm && (
-                <div className="card" style={{ marginBottom: '20px', borderTop: '3px solid var(--accent)' }}>
-                    <h3 style={{ margin: '0 0 16px' }}>New Task</h3>
-                    <div style={{ display: 'grid', gap: '12px' }}>
-                        <input type="text" className="input" placeholder="Task title *"
-                            value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                            style={{ padding: '10px 14px' }} />
-                        <textarea className="input" placeholder="Description (optional)"
-                            value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                            rows={3} style={{ padding: '10px 14px', resize: 'vertical' }} />
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
-                            <select className="input" value={form.assigned_to}
+                <div className="card" style={{ marginBottom: '24px', borderTop: '4px solid var(--accent)', padding: '24px' }}>
+                    <div style={{ marginBottom: '14px' }}>
+                        <h3 style={{ margin: '0 0 4px', fontSize: '1.2rem', fontWeight: 800 }}>Create New Staff Task</h3>
+                        <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                            Tasks utilize a postpaid model: compensation is determined and assigned after deliverables are reviewed based on complexity, time spent, and output quality.
+                        </p>
+                    </div>
+
+                    <div style={{ display: 'grid', gap: '14px' }}>
+                        <input
+                            type="text"
+                            className="input"
+                            placeholder="Task title *"
+                            value={form.title}
+                            onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                            style={{ padding: '10px 14px' }}
+                        />
+                        <textarea
+                            className="input"
+                            placeholder="Detailed requirements and deliverables expected..."
+                            value={form.description}
+                            onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                            rows={3}
+                            style={{ padding: '10px 14px', resize: 'vertical' }}
+                        />
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+                            <select
+                                className="input"
+                                value={form.assigned_to}
                                 onChange={e => setForm(f => ({ ...f, assigned_to: e.target.value }))}
-                                style={{ padding: '10px 14px' }}>
-                                <option value="">Assign to... *</option>
+                                style={{ padding: '10px 14px' }}
+                            >
+                                <option value="">Assign to Staff Member *</option>
                                 {staff.map(s => (
                                     <option key={s.id} value={s.id}>{s.full_name} ({s.role})</option>
                                 ))}
                             </select>
-                            <input type="date" className="input" value={form.due_date}
+                            <input
+                                type="date"
+                                className="input"
+                                value={form.due_date}
                                 onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))}
-                                style={{ padding: '10px 14px' }} />
-                            <input type="number" className="input" placeholder="Payment ₹"
-                                value={form.payment_amount}
-                                onChange={e => setForm(f => ({ ...f, payment_amount: e.target.value }))}
-                                style={{ padding: '10px 14px' }} />
+                                style={{ padding: '10px 14px' }}
+                            />
                         </div>
-                        <button className="btn primary" onClick={createTask}
-                            style={{ width: 'fit-content', padding: '10px 24px' }}>
-                            Create Task
-                        </button>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                            <button className="btn" onClick={() => setShowForm(false)}>Cancel</button>
+                            <button
+                                className="btn primary"
+                                onClick={createTask}
+                                style={{ padding: '10px 24px' }}
+                            >
+                                Assign Task & Email Notification
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
 
             {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><div className="spinner" /></div>
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}><div className="spinner" /></div>
             ) : filtered.length > 0 ? (
-                <div className="table-wrapper">
-                    <table className="table">
-                        <thead>
-                            <tr>
-                                <th>Task</th>
-                                <th>Assigned To</th>
-                                <th>Status</th>
-                                <th>Payment</th>
-                                <th>Due Date</th>
-                                <th>Created</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filtered.map(t => (
-                                <tr key={t.id}>
-                                    <td>
-                                        <strong>{t.title}</strong>
-                                        {t.description && <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{t.description.substring(0, 80)}{t.description.length > 80 ? '...' : ''}</div>}
-                                    </td>
-                                    <td style={{ fontSize: '0.85rem' }}>
-                                        {t.assigned_to_name || t.assigned_to_email}
-                                    </td>
-                                    <td>
-                                        <span className="badge" style={{ background: statusBg(t.status), color: statusColor(t.status) }}>
-                                            {t.status.replace('_', ' ')}
-                                        </span>
-                                    </td>
-                                    <td style={{ fontWeight: 600 }}>{t.payment_amount > 0 ? `₹${t.payment_amount}` : '--'}</td>
-                                    <td style={{ whiteSpace: 'nowrap', fontSize: '0.82rem' }}>{t.due_date ? new Date(t.due_date).toLocaleDateString() : '--'}</td>
-                                    <td style={{ whiteSpace: 'nowrap', fontSize: '0.82rem' }}>{new Date(t.created_at).toLocaleDateString()}</td>
-                                    <td>
-                                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                            {t.status === 'completed' && !t.is_paid && (
-                                                <button className="btn" onClick={() => revertTask(t)}
-                                                    style={{ fontSize: '0.78rem', padding: '4px 10px', background: 'var(--yellow-bg)', color: '#b8860b', border: '1px solid rgba(217, 119, 6, 0.2)' }}>
-                                                    Revert
-                                                </button>
-                                            )}
-                                            <button className="btn" onClick={() => deleteTask(t.id)}
-                                                style={{ fontSize: '0.78rem', padding: '4px 10px', color: 'var(--red)' }}>
-                                                Delete
-                                            </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    {filtered.map(task => {
+                        const hasSubmission = task.submission_report || task.submission_file;
+                        const isUnderReview = task.status === 'submitted_for_review';
+                        const canAssignPayment = ['submitted_for_review', 'approved', 'completed'].includes(task.status) && task.payment_status !== 'paid';
+
+                        return (
+                            <div key={task.id} className="card" style={{
+                                borderLeft: isUnderReview ? '4px solid #6366f1' : task.status === 'completed' ? '4px solid var(--green)' : '4px solid var(--accent)',
+                                padding: '20px'
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+                                    <div style={{ flex: 1, minWidth: '280px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                                            <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700 }}>{task.title}</h4>
+                                            {getStatusBadge(task.status)}
+                                            {getPaymentBadge(task.payment_status, task.payment_amount)}
                                         </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+
+                                        {task.description && (
+                                            <p style={{ margin: '0 0 10px', fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                                                {task.description}
+                                            </p>
+                                        )}
+
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                            <span><strong>Assignee:</strong> {task.assigned_to_name} ({task.assigned_to_email})</span>
+                                            {task.due_date && <span><strong>Due:</strong> {new Date(task.due_date).toLocaleDateString()}</span>}
+                                            {task.time_spent_hours > 0 && <span><strong>Time Reported:</strong> {task.time_spent_hours} hrs</span>}
+                                        </div>
+                                    </div>
+
+                                    {/* Action Buttons for Manager */}
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                        {/* Deliverables Review Button */}
+                                        {hasSubmission && (
+                                            <button
+                                                className="btn primary"
+                                                onClick={() => {
+                                                    setReviewTask(task);
+                                                    setReviewFeedback(task.reviewer_feedback || '');
+                                                }}
+                                                style={{ fontSize: '0.82rem', padding: '6px 14px', background: isUnderReview ? '#4338ca' : 'var(--accent)' }}
+                                            >
+                                                {isUnderReview ? 'Review Deliverables' : 'View Deliverables'}
+                                            </button>
+                                        )}
+
+                                        {/* Postpaid Payment Actions */}
+                                        {canAssignPayment && (
+                                            <button
+                                                className="btn"
+                                                onClick={() => {
+                                                    setPaymentTask(task);
+                                                    setEvalAmount(task.payment_amount > 0 ? task.payment_amount : '');
+                                                    setEvalNotes(task.payment_notes || '');
+                                                }}
+                                                style={{ fontSize: '0.82rem', padding: '6px 12px', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+                                            >
+                                                {task.payment_amount > 0 ? `Adjust Amount (₹${task.payment_amount})` : 'Assign Amount ₹'}
+                                            </button>
+                                        )}
+
+                                        {task.payment_status === 'amount_assigned' && (
+                                            <button
+                                                className="btn"
+                                                onClick={() => handleApprovePayment(task.id)}
+                                                style={{ fontSize: '0.82rem', padding: '6px 12px', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0' }}
+                                            >
+                                                Approve ₹{task.payment_amount}
+                                            </button>
+                                        )}
+
+                                        {task.payment_status === 'approved' && (
+                                            <button
+                                                className="btn"
+                                                onClick={() => handleCreditWallet(task)}
+                                                style={{ fontSize: '0.82rem', padding: '6px 14px', background: '#15803d', color: '#ffffff', fontWeight: 700 }}
+                                            >
+                                                Pay ₹{task.payment_amount}
+                                            </button>
+                                        )}
+
+                                        <button
+                                            className="btn"
+                                            onClick={() => deleteTask(task.id)}
+                                            style={{ fontSize: '0.78rem', padding: '6px 10px', color: 'var(--red)', border: '1px solid #fecaca' }}
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Deliverables summary in card if exists */}
+                                {hasSubmission && (
+                                    <div style={{ marginTop: '12px', padding: '12px 14px', background: 'var(--bg)', borderRadius: '8px', fontSize: '0.82rem' }}>
+                                        <div style={{ fontWeight: 700, marginBottom: '4px', color: '#0f172a' }}>
+                                            Staff Deliverables Proof:
+                                        </div>
+                                        <p style={{ margin: '0 0 6px', color: '#334155' }}>{task.submission_report}</p>
+                                        <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
+                                            {task.submission_file && (
+                                                <a href={task.submission_file} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--blue)', fontWeight: 600 }}>
+                                                    📄 Document Attachment
+                                                </a>
+                                            )}
+                                            {task.submission_image && (
+                                                <a href={task.submission_image} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--purple)', fontWeight: 600 }}>
+                                                    🖼 Screenshot Attachment
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
             ) : (
-                <div className="card empty-state"><h3>No tasks</h3><p>Create a task to get started.</p></div>
+                <div className="card empty-state"><h3>No tasks</h3><p>No tasks match your filter.</p></div>
+            )}
+
+            {/* DELIVERABLES REVIEW MODAL */}
+            {reviewTask && (
+                <div className="overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                    <div className="card" style={{ maxWidth: '560px', width: '90%', maxHeight: '90vh', overflowY: 'auto', padding: '24px' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>
+                                Review Deliverables: {reviewTask.title}
+                            </h3>
+                            <button onClick={() => setReviewTask(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem' }}>✕</button>
+                        </div>
+
+                        <div style={{ background: 'var(--bg)', padding: '16px', borderRadius: '8px', marginBottom: '18px' }}>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                                Submitted by <strong>{reviewTask.assigned_to_name}</strong> on {new Date(reviewTask.submitted_at || Date.now()).toLocaleString()}
+                            </div>
+                            <div style={{ fontSize: '0.9rem', color: '#0f172a', whiteSpace: 'pre-wrap', marginBottom: '12px' }}>
+                                {reviewTask.submission_report || 'No text report provided.'}
+                            </div>
+                            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '0.82rem' }}>
+                                <span><strong>Time Spent:</strong> {reviewTask.time_spent_hours || 0} hrs</span>
+                                {reviewTask.submission_file && (
+                                    <a href={reviewTask.submission_file} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--blue)', fontWeight: 700 }}>
+                                        📄 Open Proof File
+                                    </a>
+                                )}
+                                {reviewTask.submission_image && (
+                                    <a href={reviewTask.submission_image} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--purple)', fontWeight: 700 }}>
+                                        🖼 View Screenshot
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+
+                        <div style={{ marginBottom: '18px' }}>
+                            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px' }}>
+                                Reviewer Feedback / Instructions (Required if requesting revision)
+                            </label>
+                            <textarea
+                                className="input"
+                                rows={3}
+                                placeholder="e.g. Excellent deliverable, ready for payment... or: please fix section 2 and re-upload..."
+                                value={reviewFeedback}
+                                onChange={e => setReviewFeedback(e.target.value)}
+                                style={{ width: '100%', resize: 'vertical' }}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap' }}>
+                            <button
+                                type="button"
+                                className="btn"
+                                onClick={() => handleReviewAction('request_revision')}
+                                disabled={reviewLoading}
+                                style={{ color: '#dc2626', border: '1px solid #fecaca' }}
+                            >
+                                Request Revision
+                            </button>
+                            <button
+                                type="button"
+                                className="btn primary"
+                                onClick={() => handleReviewAction('approve')}
+                                disabled={reviewLoading}
+                                style={{ background: '#059669' }}
+                            >
+                                {reviewLoading ? 'Processing...' : 'Approve Deliverables'}
+                            </button>
+                            <button
+                                type="button"
+                                className="btn primary"
+                                onClick={() => handleReviewAction('complete')}
+                                disabled={reviewLoading}
+                            >
+                                Mark Completed
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* POSTPAID PAYMENT EVALUATION MODAL */}
+            {paymentTask && (
+                <div className="overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                    <div className="card" style={{ maxWidth: '480px', width: '90%', maxHeight: '90vh', overflowY: 'auto', padding: '24px' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>
+                                Postpaid Compensation Evaluation
+                            </h3>
+                            <button onClick={() => setPaymentTask(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem' }}>✕</button>
+                        </div>
+
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                            Evaluate compensation for <strong>{paymentTask.title}</strong> completed by <strong>{paymentTask.assigned_to_name}</strong> (Reported Time: {paymentTask.time_spent_hours || 0} hrs).
+                        </p>
+
+                        <div style={{ marginBottom: '14px' }}>
+                            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px' }}>
+                                Compensation Amount (₹) *
+                            </label>
+                            <input
+                                type="number"
+                                min="0"
+                                step="10"
+                                className="input"
+                                placeholder="e.g. 1500"
+                                value={evalAmount}
+                                onChange={e => setEvalAmount(e.target.value)}
+                                style={{ width: '100%', fontSize: '1.1rem', fontWeight: 700 }}
+                            />
+                        </div>
+
+                        <div style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: '6px' }}>
+                                Evaluation Justification Notes:
+                            </label>
+                            <textarea
+                                className="input"
+                                rows={3}
+                                placeholder="e.g. Based on 4 hours of high complexity deliverables, approved standard rate..."
+                                value={evalNotes}
+                                onChange={e => setEvalNotes(e.target.value)}
+                                style={{ width: '100%', resize: 'vertical' }}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                            <button className="btn" onClick={() => setPaymentTask(null)}>Cancel</button>
+                            <button
+                                className="btn primary"
+                                onClick={handleAssignPayment}
+                                disabled={paymentLoading}
+                            >
+                                {paymentLoading ? 'Saving...' : 'Assign Amount'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </StaffLayout>
     );

@@ -528,3 +528,92 @@ a:hover { color: var(--accent-dark); }
         padding-top: 64px;
     }
 }
+
+/* ============================================================
+   STAFF TASK & POSTPAID PAYMENT LIFECYCLE BADGES
+   ============================================================ */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+.status-badge.badge-assigned {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+}
+
+.status-badge.badge-in-progress {
+    background: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
+
+.status-badge.badge-submitted {
+    background: #eff6ff;
+    color: #4338ca;
+    border: 1px solid #c7d2fe;
+    box-shadow: 0 0 8px rgba(99, 102, 241, 0.2);
+    animation: pulse-indigo 2s infinite;
+}
+
+.status-badge.badge-approved {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+}
+
+.status-badge.badge-revision {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+    animation: pulse-red 2s infinite;
+}
+
+.status-badge.badge-completed {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #6ee7b7;
+}
+
+.status-badge.badge-paid {
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #86efac;
+    font-weight: 800;
+}
+
+.payment-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border-radius: 6px;
+}
+.payment-badge.not-assigned { background: #f1f5f9; color: #64748b; }
+.payment-badge.awaiting-review { background: #fffbeb; color: #d97706; }
+.payment-badge.amount-assigned { background: #eff6ff; color: #2563eb; }
+.payment-badge.approved { background: #ecfdf5; color: #059669; }
+.payment-badge.paid { background: #dcfce7; color: #15803d; font-weight: 800; }
+.payment-badge.disputed { background: #fef2f2; color: #dc2626; }
+
+@keyframes pulse-indigo {
+    0%, 100% { box-shadow: 0 0 4px rgba(99, 102, 241, 0.2); }
+    50% { box-shadow: 0 0 12px rgba(99, 102, 241, 0.45); }
+}
+
+@keyframes pulse-red {
+    0%, 100% { box-shadow: 0 0 4px rgba(239, 68, 68, 0.2); }
+    50% { box-shadow: 0 0 12px rgba(239, 68, 68, 0.45); }
+}
+
