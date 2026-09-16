@@ -1,21 +1,41 @@
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
-import { withStaffAuth } from '../../lib/auth';
+import { withStaffAuth, useAuth } from '../../lib/auth';
 import { apiGet } from '../../lib/api';
 import StaffLayout from '../../components/StaffLayout';
 
 function GateMaterials() {
+    const { user } = useAuth();
     const [materials, setMaterials] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [filterClass, setFilterClass] = useState('ALL');
+    const [hasAccess, setHasAccess] = useState(true);
 
     useEffect(() => {
-        apiGet('/api/materials/')
-            .then(data => setMaterials(Array.isArray(data) ? data : []))
-            .catch(() => setMaterials([]))
-            .finally(() => setLoading(false));
-    }, []);
+        const checkAndLoad = async () => {
+            if (user?.role === 'staff') {
+                try {
+                    const modData = await apiGet('/api/staff/modules/');
+                    const mods = modData.modules || [];
+                    if (!mods.some(m => m.key === 'gate_content')) {
+                        setHasAccess(false);
+                        setLoading(false);
+                        return;
+                    }
+                } catch {
+                    setHasAccess(false);
+                    setLoading(false);
+                    return;
+                }
+            }
+            apiGet('/api/materials/')
+                .then(data => setMaterials(Array.isArray(data) ? data : []))
+                .catch(() => setMaterials([]))
+                .finally(() => setLoading(false));
+        };
+        checkAndLoad();
+    }, [user]);
 
     const classifications = ['ALL', 'PYQ', 'Notes', 'One-shots'];
 
@@ -30,6 +50,18 @@ function GateMaterials() {
         <StaffLayout title="GATE Study Materials">
             <Head><title>GATE Content | Staff Portal</title></Head>
 
+            {loading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}><div className="spinner" /></div>
+            ) : !hasAccess ? (
+                <div className="card empty-state" style={{ padding: '40px', textAlign: 'center', maxWidth: '520px', margin: '40px auto' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    </div>
+                    <h3 style={{ color: 'var(--red)', marginBottom: '8px' }}>Access Restricted</h3>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>You do not have permission to access the GATE Content module.</p>
+                </div>
+            ) : (
+            <>
             <div style={{ marginBottom: '24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '16px' }}>
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -130,6 +162,8 @@ function GateMaterials() {
                     <h3>No GATE materials found</h3>
                     <p>No materials matched your search criteria.</p>
                 </div>
+            )}
+            </>
             )}
         </StaffLayout>
     );

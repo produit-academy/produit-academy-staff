@@ -21,6 +21,7 @@ function Applications() {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
     const [positionFilter, setPositionFilter] = useState('all');
+    const [accessDenied, setAccessDenied] = useState(false);
 
     // Extract unique positions from applications
     const uniquePositions = [...new Set(applications.map(app => app.position || 'General'))].filter(Boolean);
@@ -28,9 +29,16 @@ function Applications() {
     useEffect(() => { load(); }, []);
 
     const load = async () => {
-        try { setApplications(await apiGet('/api/staff/module/careers/applications/')); }
-        catch { }
-        finally { setLoading(false); }
+        try {
+            const data = await apiGet('/api/staff/module/careers/applications/');
+            setApplications(Array.isArray(data) ? data : []);
+        } catch (err) {
+            if (err?.status === 403 || err?.message?.includes('403') || err?.message?.includes('permission')) {
+                setAccessDenied(true);
+            }
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleToggleInterview = async (id, currentStatus) => {
@@ -103,7 +111,17 @@ function Applications() {
     return (
         <StaffLayout title="Job Applications">
             <Head><title>Applications | Staff Portal</title></Head>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            {accessDenied ? (
+                <div className="card empty-state" style={{ padding: '40px', textAlign: 'center', maxWidth: '520px', margin: '40px auto' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    </div>
+                    <h3 style={{ color: 'var(--red)', marginBottom: '8px' }}>Access Restricted</h3>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>You do not have permission to access the Careers & Recruitment module.</p>
+                </div>
+            ) : (
+                <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', margin: 0 }}>
                     Showing {filteredApplications.length} of {applications.length} applications
                 </p>
@@ -215,6 +233,8 @@ function Applications() {
                 </div>
             ) : (
                 <div className="card empty-state"><h3>No applications</h3><p>No job applications submitted yet.</p></div>
+            )}
+            </>
             )}
         </StaffLayout>
     );
