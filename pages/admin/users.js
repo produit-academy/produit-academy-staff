@@ -229,7 +229,12 @@ function AdminUsers() {
                 }}>
                     <div>
                         <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span>⚠️ Existing User Detected</span>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                                </svg>
+                                Existing User Detected
+                            </span>
                             <span className="badge" style={{ background: '#fde68a', color: '#854d0e', fontSize: '0.75rem' }}>
                                 {existingUserData.role_display}
                             </span>
@@ -334,7 +339,9 @@ function AdminUsers() {
                                                 borderColor: form.assigned_platforms.includes(p.key) ? 'var(--accent)' : 'var(--border)',
                                                 padding: '8px 20px', fontSize: '0.85rem',
                                             }}>
-                                            {p.label} {form.assigned_platforms.includes(p.key) ? '✓' : ''}
+                                            {p.label} {form.assigned_platforms.includes(p.key) ? (
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginLeft: '4px' }}><polyline points="20 6 9 17 4 12"/></svg>
+                                            ) : ''}
                                         </button>
                                     ))}
                                 </div>
@@ -383,7 +390,9 @@ function AdminUsers() {
                                                     borderColor: form.modules.includes(m.key) ? 'var(--accent)' : 'var(--border)',
                                                     padding: '6px 14px', fontSize: '0.82rem',
                                                 }}>
-                                                {m.label} {form.modules.includes(m.key) ? '✓' : ''}
+                                                {m.label} {form.modules.includes(m.key) ? (
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginLeft: '4px' }}><polyline points="20 6 9 17 4 12"/></svg>
+                                                ) : ''}
                                             </button>
                                         ))}
                                     </div>
@@ -420,8 +429,9 @@ function AdminUsers() {
                                     onChange={handleChange}
                                     style={{ padding: '10px 14px' }}
                                 />
-                                <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--accent-dark)', marginTop: '4px' }}>
-                                    ✓ System auto-generates secure password and emails credentials
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: 'var(--accent-dark)', marginTop: '4px' }}>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                    System auto-generates secure password and emails credentials
                                 </span>
                             </div>
                         </div>
@@ -576,7 +586,9 @@ function AdminUsers() {
                                                 padding: '6px 14px', fontSize: '0.82rem',
                                             }}
                                         >
-                                            {m.label} {(editForm.modules || []).includes(m.key) ? '✓' : ''}
+                                            {m.label} {(editForm.modules || []).includes(m.key) ? (
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', marginLeft: '4px' }}><polyline points="20 6 9 17 4 12"/></svg>
+                                            ) : ''}
                                         </button>
                                     ))}
                                 </div>

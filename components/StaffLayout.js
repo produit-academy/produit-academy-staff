@@ -2,6 +2,7 @@ import { useAuth } from '../lib/auth';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { apiGet } from '../lib/api';
+import Logo from './Logo';
 
 const ICONS = {
     dashboard: (
@@ -136,15 +137,26 @@ export default function StaffLayout({ children, title }) {
 
     return (
         <div className="app-layout">
-            <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
-                {sidebarOpen ? '\u2715' : '\u2630'}
+            <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Toggle navigation">
+                {sidebarOpen ? (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="3" y1="12" x2="21" y2="12" />
+                        <line x1="3" y1="6" x2="21" y2="6" />
+                        <line x1="3" y1="18" x2="21" y2="18" />
+                    </svg>
+                )}
             </button>
 
             <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
                 <div className="sidebar-header">
                     <div className="sidebar-brand">
                         <div className="sidebar-brand-icon">
-                            <img src="/logo.png" alt="Produit Academy" width="28" height="28" style={{ borderRadius: '6px' }} />
+                            <Logo size={30} />
                         </div>
                         <div>
                             <div className="sidebar-brand-text">Produit Academy</div>

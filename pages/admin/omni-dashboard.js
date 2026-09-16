@@ -5,6 +5,89 @@ import { withStaffAuth, useAuth } from '../../lib/auth';
 import { apiGet } from '../../lib/api';
 import StaffLayout from '../../components/StaffLayout';
 
+const ICONS = {
+    database: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+        </svg>
+    ),
+    classes: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
+        </svg>
+    ),
+    gate: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+    ),
+    staff: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+        </svg>
+    ),
+    support: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+        </svg>
+    ),
+    careers: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+    ),
+    users: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+    ),
+    globe: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+    ),
+    diagnostics: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+    ),
+    refresh: (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+        </svg>
+    ),
+    warning: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+    ),
+    lock: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+    ),
+    arrowRight: (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+        </svg>
+    ),
+    payroll: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+        </svg>
+    ),
+    tasks: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+        </svg>
+    ),
+    teacher: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/>
+        </svg>
+    )
+};
+
 function OmniDashboard() {
     const { user } = useAuth();
     const router = useRouter();
@@ -46,9 +129,7 @@ function OmniDashboard() {
                         width: '56px', height: '56px', borderRadius: '50%', background: '#fee2e2',
                         color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: '1.5rem', margin: '0 auto 16px', fontWeight: 800
-                    }}>
-                        ✕
-                    </div>
+                    }}>{ICONS.lock}</div>
                     <h3 style={{ color: 'var(--red)', marginBottom: '8px' }}>Access Restricted</h3>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '20px' }}>
                         The Omni Command Center is restricted to Administrators and Super Administrators.
@@ -120,7 +201,7 @@ function OmniDashboard() {
                             className="btn primary"
                             style={{ padding: '8px 16px', fontSize: '0.82rem', fontWeight: 700 }}
                         >
-                            {loading ? 'Refreshing...' : '↻ Refresh Stream'}
+                            {loading ? 'Refreshing...' : (<span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>{ICONS.refresh} Refresh Stream</span>)}
                         </button>
                     </div>
                 </div>
@@ -154,7 +235,7 @@ function OmniDashboard() {
                                         onClick={fetchOmniData}
                                         className="btn primary"
                                         style={{ background: '#dc2626', borderColor: '#dc2626', padding: '6px 14px', fontSize: '0.82rem' }}>
-                                        ↻ Retry Stream Connection
+                                        Retry Stream Connection
                                     </button>
                                 </div>
                             </div>
@@ -169,7 +250,7 @@ function OmniDashboard() {
                         borderRadius: '10px', marginBottom: '24px'
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <span style={{ fontSize: '1.2rem' }}>⚠️</span>
+                            <span style={{ display: 'inline-flex', alignItems: 'center' }}>{ICONS.warning}</span>
                             <div style={{ flex: 1 }}>
                                 <strong style={{ color: '#92400e', fontSize: '0.9rem' }}>
                                     Subsystem Warning Detected
@@ -200,13 +281,13 @@ function OmniDashboard() {
                         gap: '10px', marginBottom: '24px'
                     }}>
                         {[
-                            { key: 'database', label: 'Neon DB', icon: '🗄️' },
-                            { key: 'classes', label: 'Classes App', icon: '🎓' },
-                            { key: 'gate', label: 'GATE Prep', icon: '📚' },
-                            { key: 'staff', label: 'Staff & HR', icon: '💼' },
-                            { key: 'support', label: 'Support Desk', icon: '🎧' },
-                            { key: 'careers', label: 'Careers App', icon: '📝' },
-                            { key: 'users', label: 'Auth & Users', icon: '👥' },
+                            { key: 'database', label: 'Neon DB', icon: 'database' },
+                            { key: 'classes', label: 'Classes App', icon: 'classes' },
+                            { key: 'gate', label: 'GATE Prep', icon: 'gate' },
+                            { key: 'staff', label: 'Staff & HR', icon: 'staff' },
+                            { key: 'support', label: 'Support Desk', icon: 'support' },
+                            { key: 'careers', label: 'Careers App', icon: 'careers' },
+                            { key: 'users', label: 'Auth & Users', icon: 'users' },
                         ].map(s => {
                             const status = systemHealth[s.key] || 'operational';
                             const isOperational = status === 'operational';
@@ -217,7 +298,7 @@ function OmniDashboard() {
                                     display: 'flex', alignItems: 'center', justifyContent: 'space-between'
                                 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <span style={{ fontSize: '1rem' }}>{s.icon}</span>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--text-secondary)' }}>{ICONS[s.icon]}</span>
                                         <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{s.label}</span>
                                     </div>
                                     <span style={{
@@ -237,13 +318,13 @@ function OmniDashboard() {
                     paddingBottom: '4px', borderBottom: '1px solid var(--border)'
                 }}>
                     {[
-                        { id: 'overview', label: '🌐 All Overview' },
-                        { id: 'classes', label: '🎓 Classes Telemetry' },
-                        { id: 'gate', label: '📚 GATE Telemetry' },
-                        { id: 'staff', label: '💼 Staff & Payroll' },
-                        { id: 'support', label: '🎧 Support & Careers' },
-                        { id: 'users', label: '👥 Global Directory' },
-                        { id: 'diagnostics', label: '⚙️ Diagnostics & Errors' },
+                        { id: 'overview', label: 'All Overview', icon: 'globe' },
+                        { id: 'classes', label: 'Classes Telemetry', icon: 'classes' },
+                        { id: 'gate', label: 'GATE Telemetry', icon: 'gate' },
+                        { id: 'staff', label: 'Staff & Payroll', icon: 'staff' },
+                        { id: 'support', label: 'Support & Careers', icon: 'support' },
+                        { id: 'users', label: 'Global Directory', icon: 'users' },
+                        { id: 'diagnostics', label: 'Diagnostics & Audit', icon: 'diagnostics' },
                     ].map(t => (
                         <button
                             key={t.id}
@@ -257,7 +338,7 @@ function OmniDashboard() {
                                 color: activeTab === t.id ? 'var(--text-primary)' : 'var(--text-secondary)'
                             }}
                         >
-                            {t.label}
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>{ICONS[t.icon]} {t.label}</span>
                         </button>
                     ))}
                 </div>
@@ -338,19 +419,19 @@ function OmniDashboard() {
                                 }}>
                                     <button className="btn" onClick={() => router.push('/hr/payroll')}
                                         style={{ fontSize: '0.82rem', padding: '8px 16px', background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <span>💰</span> Open Payroll Center
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>{ICONS.payroll} Open Payroll Center</span>
                                     </button>
                                     <button className="btn" onClick={() => router.push('/hr/tasks')}
                                         style={{ fontSize: '0.82rem', padding: '8px 16px', background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <span>📋</span> Review Submitted Tasks ({staff.tasks_in_review || 0})
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>{ICONS.tasks} Review Submitted Tasks</span> ({staff.tasks_in_review || 0})
                                     </button>
                                     <button className="btn" onClick={() => router.push('/classes/onboard')}
                                         style={{ fontSize: '0.82rem', padding: '8px 16px', background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <span>👨‍🏫</span> Onboard & Approve Teachers
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>{ICONS.teacher} Onboard & Approve Teachers</span>
                                     </button>
                                     <button className="btn" onClick={() => router.push('/admin/users')}
                                         style={{ fontSize: '0.82rem', padding: '8px 16px', background: 'var(--card-bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <span>👥</span> Manage All Users
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>{ICONS.users} Manage All Users</span>
                                     </button>
                                 </div>
 
@@ -364,7 +445,7 @@ function OmniDashboard() {
                                                 <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Produit Classes Platform</h3>
                                             </div>
                                             <button className="btn" onClick={() => setActiveTab('classes')} style={{ fontSize: '0.75rem', padding: '4px 10px' }}>
-                                                Deep Dive ➔
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>Deep Dive {ICONS.arrowRight}</span>
                                             </button>
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -397,7 +478,7 @@ function OmniDashboard() {
                                                 <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Produit GATE Platform</h3>
                                             </div>
                                             <button className="btn" onClick={() => setActiveTab('gate')} style={{ fontSize: '0.75rem', padding: '4px 10px' }}>
-                                                Deep Dive ➔
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>Deep Dive {ICONS.arrowRight}</span>
                                             </button>
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -430,7 +511,7 @@ function OmniDashboard() {
                                                 <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Staff & HR Operations</h3>
                                             </div>
                                             <button className="btn" onClick={() => setActiveTab('staff')} style={{ fontSize: '0.75rem', padding: '4px 10px' }}>
-                                                Deep Dive ➔
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>Deep Dive {ICONS.arrowRight}</span>
                                             </button>
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -463,7 +544,7 @@ function OmniDashboard() {
                                                 <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Support & Careers</h3>
                                             </div>
                                             <button className="btn" onClick={() => setActiveTab('support')} style={{ fontSize: '0.75rem', padding: '4px 10px' }}>
-                                                Deep Dive ➔
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>Deep Dive {ICONS.arrowRight}</span>
                                             </button>
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -663,7 +744,7 @@ function OmniDashboard() {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                                         <h4 style={{ margin: 0, fontSize: '0.95rem' }}>Submitted Tasks Awaiting Manager Review</h4>
                                         <button className="btn" onClick={() => router.push('/hr/tasks')} style={{ fontSize: '0.75rem', padding: '4px 10px' }}>
-                                            Open Review Queue ➔
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>Open Review Queue {ICONS.arrowRight}</span>
                                         </button>
                                     </div>
                                     {(staff.recent_review_tasks || []).length > 0 ? (
@@ -698,7 +779,7 @@ function OmniDashboard() {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                                         <h4 style={{ margin: 0, fontSize: '0.95rem' }}>Recent Wallet Transactions / Direct Payouts</h4>
                                         <button className="btn" onClick={() => router.push('/hr/payroll')} style={{ fontSize: '0.75rem', padding: '4px 10px' }}>
-                                            Open Payroll ➔
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>Open Payroll {ICONS.arrowRight}</span>
                                         </button>
                                     </div>
                                     {(staff.recent_wallet_transactions || []).length > 0 ? (
@@ -894,7 +975,7 @@ function OmniDashboard() {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                                         <h4 style={{ margin: 0, fontSize: '0.95rem' }}>Recent Registered Users (All Platforms)</h4>
                                         <button className="btn" onClick={() => router.push('/admin/users')} style={{ fontSize: '0.75rem', padding: '4px 10px' }}>
-                                            Manage Users ➔
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>Manage Users {ICONS.arrowRight}</span>
                                         </button>
                                     </div>
                                     {(users.recent_users || []).length > 0 ? (

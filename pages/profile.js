@@ -147,7 +147,10 @@ function Profile() {
                                                 <span className="badge" style={{ background: m.bg, color: m.color, fontWeight: 700 }}>
                                                     {m.label}
                                                 </span>
-                                                <span style={{ fontSize: '0.74rem', color: '#10b981', fontWeight: 600 }}>✓ Granted</span>
+                                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '0.74rem', color: '#10b981', fontWeight: 600 }}>
+                                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                                    Granted
+                                                </span>
                                             </div>
                                             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{m.desc}</div>
                                         </div>

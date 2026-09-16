@@ -450,7 +450,10 @@ function HRTasks() {
                                             onClick={() => openEditTask(task)}
                                             style={{ fontSize: '0.82rem', padding: '6px 12px', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
                                         >
-                                            ✏️ Edit
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                                                Edit
+                                            </span>
                                         </button>
 
                                         <button
@@ -473,12 +476,12 @@ function HRTasks() {
                                         <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
                                             {task.submission_file && (
                                                 <a href={task.submission_file} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--blue)', fontWeight: 600 }}>
-                                                    📄 Document Attachment
+                                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Document Attachment</span>
                                                 </a>
                                             )}
                                             {task.submission_image && (
                                                 <a href={task.submission_image} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--purple)', fontWeight: 600 }}>
-                                                    🖼 Screenshot Attachment
+                                                    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> Screenshot Attachment</span>
                                                 </a>
                                             )}
                                         </div>
@@ -500,7 +503,7 @@ function HRTasks() {
                             <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>
                                 Review Deliverables: {reviewTask.title}
                             </h3>
-                            <button onClick={() => setReviewTask(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem' }}>✕</button>
+                            <button onClick={() => setReviewTask(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem' }} aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                         </div>
 
                         <div style={{ background: 'var(--bg)', padding: '16px', borderRadius: '8px', marginBottom: '18px' }}>
@@ -514,12 +517,12 @@ function HRTasks() {
                                 <span><strong>Time Spent:</strong> {reviewTask.time_spent_hours || 0} hrs</span>
                                 {reviewTask.submission_file && (
                                     <a href={reviewTask.submission_file} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--blue)', fontWeight: 700 }}>
-                                        📄 Open Proof File
+                                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Open Proof File</span>
                                     </a>
                                 )}
                                 {reviewTask.submission_image && (
                                     <a href={reviewTask.submission_image} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--purple)', fontWeight: 700 }}>
-                                        🖼 View Screenshot
+                                        <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> View Screenshot</span>
                                     </a>
                                 )}
                             </div>
@@ -579,7 +582,7 @@ function HRTasks() {
                             <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>
                                 Postpaid Compensation Evaluation
                             </h3>
-                            <button onClick={() => setPaymentTask(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem' }}>✕</button>
+                            <button onClick={() => setPaymentTask(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem' }} aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                         </div>
 
                         <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
@@ -636,9 +639,9 @@ function HRTasks() {
                     <div className="card" style={{ maxWidth: '560px', width: '90%', maxHeight: '90vh', overflowY: 'auto', padding: '24px' }} onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                             <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>
-                                ✏️ Edit Staff Task #{editTask.id}
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Edit Staff Task #{editTask.id}</span>
                             </h3>
-                            <button onClick={() => setEditTask(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem' }}>✕</button>
+                            <button onClick={() => setEditTask(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem' }} aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                         </div>
 
                         <form onSubmit={handleSaveTaskEdit}>

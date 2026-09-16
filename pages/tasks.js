@@ -303,13 +303,15 @@ function Tasks() {
                                                 <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                                                     {task.time_spent_hours > 0 && <span><strong>Time Spent:</strong> {task.time_spent_hours} hrs</span>}
                                                     {task.submission_file && (
-                                                        <a href={task.submission_file} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--blue)', fontWeight: 600 }}>
-                                                            📄 View Attached Proof Document
+                                                        <a href={task.submission_file} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--blue)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                                            View Attached Proof Document
                                                         </a>
                                                     )}
                                                     {task.submission_image && (
-                                                        <a href={task.submission_image} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--purple)', fontWeight: 600 }}>
-                                                            🖼 View Attached Screenshot
+                                                        <a href={task.submission_image} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--purple)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                                            View Attached Screenshot
                                                         </a>
                                                     )}
                                                 </div>
@@ -354,7 +356,9 @@ function Tasks() {
                             <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>
                                 Submit Deliverables for Review
                             </h3>
-                            <button onClick={() => setSubmitModalTask(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.1rem' }}>✕</button>
+                            <button onClick={() => setSubmitModalTask(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }} aria-label="Close modal">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
                         </div>
 
                         <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '18px' }}>

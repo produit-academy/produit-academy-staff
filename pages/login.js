@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useAuth } from '../lib/auth';
+import Logo from '../components/Logo';
 
 export default function Login() {
     const { login } = useAuth();
@@ -13,8 +14,8 @@ export default function Login() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true);
         setError('');
+        setLoading(true);
         try {
             await login(email, password);
             router.push('/');
@@ -31,9 +32,7 @@ export default function Login() {
             <div className="login-container">
                 <div className="login-card">
                     <div className="login-header">
-                        <div style={{ width: '56px', height: '56px', margin: '0 auto' }}>
-                            <img src="/logo.png" alt="Produit Academy" width="56" height="56" style={{ borderRadius: '12px' }} />
-                        </div>
+                        <Logo size={60} style={{ margin: '0 auto 12px' }} />
                         <h1>Produit Academy</h1>
                         <p>Staff Portal</p>
                     </div>

@@ -98,9 +98,14 @@ function HROnboarding() {
     };
 
     useEffect(() => {
-        // Check if user is HR staff (has careers or classes module)
+        // Check if user is HR staff (has careers or classes module) or admin/manager
         const checkAccess = async () => {
             try {
+                if (user?.is_superuser || user?.role === 'admin' || user?.role === 'manager') {
+                    setIsHR(true);
+                    loadData();
+                    return;
+                }
                 const data = await apiGet('/api/staff/modules/');
                 const mods = data.modules || [];
                 const hasHRAccess = mods.some(m => m.key === 'careers' || m.key === 'classes');
@@ -112,7 +117,7 @@ function HROnboarding() {
             finally { setAuthChecking(false); }
         };
         checkAccess();
-    }, []);
+    }, [user]);
 
     // Debounced course search
     const handleCourseSearch = (val) => {
