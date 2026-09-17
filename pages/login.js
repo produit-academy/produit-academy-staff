@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useAuth } from '../lib/auth';
 import Logo from '../components/Logo';
 
@@ -47,7 +48,12 @@ export default function Login() {
                                 placeholder="staff@produitacademy.com" />
                         </div>
                         <div className="form-group">
-                            <label className="label">Password</label>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                <label className="label" style={{ margin: 0 }}>Password</label>
+                                <Link href="/forgot-password" style={{ fontSize: '0.82rem', color: 'var(--accent)', fontWeight: 500 }}>
+                                    Forgot password?
+                                </Link>
+                            </div>
                             <input className="input" type="password" value={password}
                                 onChange={(e) => setPassword(e.target.value)} required
                                 placeholder="Enter password" />
@@ -57,6 +63,13 @@ export default function Login() {
                             {loading ? 'Signing in...' : 'Sign In'}
                         </button>
                     </form>
+
+                    <div style={{ textAlign: 'center', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(0, 0, 0, 0.06)' }}>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Forgot your password? </span>
+                        <Link href="/forgot-password" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                            Reset it here
+                        </Link>
+                    </div>
                 </div>
             </div>
         </>
