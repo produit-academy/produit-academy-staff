@@ -133,8 +133,9 @@ function Profile() {
                                 {[
                                     { key: 'support', label: 'Support & Inquiries', desc: 'Manage user complaints and platform contact enquiries', href: '/complaints', color: 'var(--red)', bg: 'var(--red-bg)' },
                                     { key: 'careers', label: 'Careers & Recruitment', desc: 'Review incoming teacher and staff job applications', href: '/applications', color: 'var(--purple)', bg: 'var(--purple-bg)' },
-                                    { key: 'classes', label: 'Classes & Teaching', desc: 'Onboarding teachers, curriculum management & session reviews', href: '/classes/onboard', color: 'var(--green)', bg: 'var(--green-bg)' },
+                                    { key: 'classes', label: 'Classes & Teaching', desc: 'Onboarding teachers, curriculum management & session reviews', href: '/classes/sessions', color: 'var(--green)', bg: 'var(--green-bg)' },
                                     { key: 'gate_content', label: 'GATE Content', desc: 'Access study materials, question repositories & guides', href: '/gate/materials', color: 'var(--blue)', bg: 'var(--blue-bg)' },
+                                    { key: 'finance', label: 'Finance & Reconciliation', desc: 'Monitor payment transactions, gateway sync & financial reconciliation', href: '/finance/reconcile', color: 'var(--accent)', bg: 'var(--accent-light)' },
                                     { key: 'analytics', label: 'Omni Telemetry & Stats', desc: 'Platform health monitoring, live activity feeds & system stats', href: '/admin/omni-dashboard', color: 'var(--yellow)', bg: 'var(--yellow-bg)' },
                                 ].filter(m => (profile.effective_modules || profile.assigned_modules || []).includes(m.key)).map(m => (
                                     <div key={m.key} style={{

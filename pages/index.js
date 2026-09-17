@@ -47,8 +47,9 @@ function Dashboard() {
     const MODULE_ROUTES = {
         support: '/complaints',
         careers: '/applications',
-        classes: '/classes/onboard',
+        classes: '/classes/sessions',
         gate_content: '/gate/materials',
+        finance: '/finance/reconcile',
         analytics: '/admin/omni-dashboard',
     };
 
@@ -57,6 +58,7 @@ function Dashboard() {
         careers: 'var(--purple)',
         gate_content: 'var(--blue)',
         classes: 'var(--green)',
+        finance: 'var(--accent)',
         analytics: 'var(--yellow)',
     };
 

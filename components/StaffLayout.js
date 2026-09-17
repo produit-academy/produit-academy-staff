@@ -65,6 +65,16 @@ const ICONS = {
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
         </svg>
     ),
+    video: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+        </svg>
+    ),
+    help: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
+    ),
 };
 
 const MODULE_NAV = {
@@ -76,10 +86,15 @@ const MODULE_NAV = {
         { label: 'Applications', href: '/applications', icon: 'briefcase' },
     ],
     classes: [
+        { label: 'Class Sessions', href: '/classes/sessions', icon: 'video' },
         { label: 'Teacher Onboarding', href: '/classes/onboard', icon: 'user' },
     ],
     gate_content: [
         { label: 'GATE Materials', href: '/gate/materials', icon: 'book' },
+        { label: 'Question Bank', href: '/gate/questions', icon: 'help' },
+    ],
+    finance: [
+        { label: 'Reconciliation & Logs', href: '/finance/reconcile', icon: 'wallet' },
     ],
     analytics: [
         { label: 'Omni Telemetry & Stats', href: '/admin/omni-dashboard', icon: 'dashboard' },
@@ -107,19 +122,19 @@ export default function StaffLayout({ children, title }) {
         }
     }, [isStaff]);
 
-    // Build module nav items for staff based on their department
+    // Build module nav items for staff based on their assigned modules
     const moduleNavItems = [];
-    const hasModule = (key) => modules.some(m => m.key === key);
     if (isStaff) {
         modules.forEach(m => {
             if (MODULE_NAV[m.key]) {
-                MODULE_NAV[m.key].forEach(item => moduleNavItems.push(item));
+                MODULE_NAV[m.key].forEach(item => {
+                    if (!moduleNavItems.some(existing => existing.href === item.href)) {
+                        moduleNavItems.push(item);
+                    }
+                });
             }
         });
     }
-
-    // HR staff has careers/classes modules
-    const isHR = isStaff && (hasModule('careers') || hasModule('classes'));
 
     const navLink = (href, icon, label) => (
         <a key={href} href={href}
@@ -190,7 +205,7 @@ export default function StaffLayout({ children, title }) {
                         </div>
                     )}
 
-                    {/* Manager / Admin - HR & Management */}
+                    {/* Manager / Admin - HR & Staff Management */}
                     {(isManager || isAdmin) && (
                         <div className="nav-section">
                             <div className="nav-title">Management</div>
@@ -200,19 +215,16 @@ export default function StaffLayout({ children, title }) {
                         </div>
                     )}
 
-                    {/* HR & Recruitment - HR staff only (not admin) */}
-                    {isHR && (
+                    {/* Platform Modules - Admin & Manager */}
+                    {(isAdmin || isManager) && (
                         <div className="nav-section">
-                            <div className="nav-title">HR & Recruitment</div>
-                            {navLink('/applications', 'briefcase', 'Applications')}
-                            {navLink('/classes/onboard', 'user', 'Onboarding')}
-                        </div>
-                    )}
-
-                    {/* Admin support */}
-                    {isAdmin && (
-                        <div className="nav-section">
-                            <div className="nav-title">Support</div>
+                            <div className="nav-title">Platform Operations</div>
+                            {navLink('/classes/sessions', 'video', 'Class Sessions')}
+                            {navLink('/classes/onboard', 'user', 'Teacher Onboarding')}
+                            {navLink('/gate/materials', 'book', 'GATE Materials')}
+                            {navLink('/gate/questions', 'help', 'Question Bank')}
+                            {navLink('/finance/reconcile', 'wallet', 'Finance & Reconciliation')}
+                            {navLink('/applications', 'briefcase', 'Careers & Applications')}
                             {navLink('/complaints', 'flag', 'Complaints')}
                             {navLink('/contacts', 'mail', 'Contact Enquiries')}
                         </div>

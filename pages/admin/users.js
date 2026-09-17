@@ -23,6 +23,7 @@ const ALL_MODULES = [
     { key: 'careers', label: 'Careers' },
     { key: 'gate_content', label: 'GATE Content' },
     { key: 'classes', label: 'Classes' },
+    { key: 'finance', label: 'Finance' },
     { key: 'analytics', label: 'Analytics' },
 ];
 
