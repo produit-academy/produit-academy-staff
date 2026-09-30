@@ -57,14 +57,7 @@ function Tasks() {
         if (submissionImage) formData.append('submission_image', submissionImage);
 
         try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/staff/tasks/${submitModalTask.id}/submit-completion/`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                body: formData
-            });
+            const res = await apiPost(`/api/staff/tasks/${submitModalTask.id}/submit-completion/`, formData);
 
             if (res.ok) {
                 setSubmitModalTask(null);
@@ -74,11 +67,11 @@ function Tasks() {
                 setSubmissionImage(null);
                 loadTasks();
             } else {
-                const errData = await res.json();
-                setModalError(errData.error || 'Failed to submit deliverables.');
+                const errData = await res.json().catch(() => ({}));
+                setModalError(errData.error || errData.detail || 'Failed to submit deliverables.');
             }
-        } catch {
-            setModalError('Network error uploading proof deliverables.');
+        } catch (err) {
+            setModalError(err?.message || 'Network error uploading proof deliverables.');
         } finally {
             setSubmittingProof(false);
         }
