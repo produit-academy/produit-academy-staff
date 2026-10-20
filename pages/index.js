@@ -17,31 +17,33 @@ function Dashboard() {
     const isManager = role === 'manager';
 
     useEffect(() => {
+        let isMounted = true;
         const load = async () => {
             try {
-                const modData = await apiGet('/api/staff/modules/').catch(() => ({ modules: [] }));
-                setModules(modData.modules || []);
+                const isManagement = isManager || isAdmin;
+                // Parallelize stats and modules fetching
+                const [statsData, modData] = await Promise.all([
+                    apiGet('/api/staff/dashboard/stats/').catch(() => null),
+                    !isManagement
+                        ? apiGet('/api/staff/modules/').catch(() => ({ modules: [] }))
+                        : Promise.resolve({ modules: [] })
+                ]);
 
-                // Load manager/admin stats
-                if (isManager || isAdmin) {
-                    const [staffData, taskData] = await Promise.all([
-                        apiGet('/api/staff/manager/staff/').catch(() => []),
-                        apiGet('/api/staff/manager/tasks/').catch(() => []),
-                    ]);
-                    const staffArr = Array.isArray(staffData) ? staffData : [];
-                    const taskArr = Array.isArray(taskData) ? taskData : [];
-                    setStats({
-                        totalStaff: staffArr.length,
-                        totalTasks: taskArr.length,
-                        pendingTasks: taskArr.filter(t => t.status === 'pending').length,
-                        inProgress: taskArr.filter(t => t.status === 'in_progress').length,
-                        completed: taskArr.filter(t => t.status === 'completed').length,
-                    });
+                if (isMounted) {
+                    if (statsData) {
+                        setStats(statsData);
+                    }
+                    if (modData?.modules) {
+                        setModules(modData.modules);
+                    }
                 }
             } catch { }
-            finally { setLoading(false); }
+            finally {
+                if (isMounted) setLoading(false);
+            }
         };
         load();
+        return () => { isMounted = false; };
     }, [isManager, isAdmin]);
 
     const MODULE_ROUTES = {
@@ -75,23 +77,23 @@ function Dashboard() {
                         <>
                             <div className="stats-grid" style={{ marginBottom: '28px' }}>
                                 <div className="card stat-card" style={{ cursor: 'pointer' }} onClick={() => router.push('/hr/staff')}>
-                                    <div className="stat-value" style={{ color: 'var(--accent)' }}>{stats.totalStaff}</div>
+                                    <div className="stat-value" style={{ color: 'var(--accent)' }}>{stats.totalStaff ?? 0}</div>
                                     <div className="stat-label">Total Staff</div>
                                 </div>
                                 <div className="card stat-card" style={{ cursor: 'pointer' }} onClick={() => router.push('/hr/tasks')}>
-                                    <div className="stat-value" style={{ color: 'var(--blue)' }}>{stats.totalTasks}</div>
+                                    <div className="stat-value" style={{ color: 'var(--blue)' }}>{stats.totalTasks ?? 0}</div>
                                     <div className="stat-label">Total Tasks</div>
                                 </div>
                                 <div className="card stat-card">
-                                    <div className="stat-value" style={{ color: 'var(--yellow)' }}>{stats.pendingTasks}</div>
+                                    <div className="stat-value" style={{ color: 'var(--yellow)' }}>{stats.pendingTasks ?? 0}</div>
                                     <div className="stat-label">Pending</div>
                                 </div>
                                 <div className="card stat-card">
-                                    <div className="stat-value" style={{ color: 'var(--purple)' }}>{stats.inProgress}</div>
+                                    <div className="stat-value" style={{ color: 'var(--purple)' }}>{stats.inProgress ?? 0}</div>
                                     <div className="stat-label">In Progress</div>
                                 </div>
                                 <div className="card stat-card">
-                                    <div className="stat-value" style={{ color: 'var(--green)' }}>{stats.completed}</div>
+                                    <div className="stat-value" style={{ color: 'var(--green)' }}>{stats.completed ?? 0}</div>
                                     <div className="stat-label">Completed</div>
                                 </div>
                             </div>
@@ -118,15 +120,33 @@ function Dashboard() {
                         </>
                     )}
 
-                    {/* Staff Module Cards */}
+                    {/* Staff Personal Stats & Module Cards */}
                     {!isManager && !isAdmin && (
                         <>
-                            <div className="stats-grid" style={{ marginBottom: '28px' }}>
-                                <div className="card stat-card">
-                                    <div className="stat-value" style={{ color: 'var(--accent)' }}>{modules.length}</div>
-                                    <div className="stat-label">Assigned Modules</div>
+                            {stats && (
+                                <div className="stats-grid" style={{ marginBottom: '28px' }}>
+                                    <div className="card stat-card" style={{ cursor: 'pointer' }} onClick={() => router.push('/tasks')}>
+                                        <div className="stat-value" style={{ color: 'var(--accent)' }}>{stats.myTotalTasks ?? 0}</div>
+                                        <div className="stat-label">My Tasks</div>
+                                    </div>
+                                    <div className="card stat-card" style={{ cursor: 'pointer' }} onClick={() => router.push('/tasks')}>
+                                        <div className="stat-value" style={{ color: 'var(--yellow)' }}>{stats.myPendingTasks ?? 0}</div>
+                                        <div className="stat-label">Pending</div>
+                                    </div>
+                                    <div className="card stat-card" style={{ cursor: 'pointer' }} onClick={() => router.push('/tasks')}>
+                                        <div className="stat-value" style={{ color: 'var(--purple)' }}>{stats.myInProgress ?? 0}</div>
+                                        <div className="stat-label">In Progress</div>
+                                    </div>
+                                    <div className="card stat-card" style={{ cursor: 'pointer' }} onClick={() => router.push('/tasks')}>
+                                        <div className="stat-value" style={{ color: 'var(--green)' }}>{stats.myCompleted ?? 0}</div>
+                                        <div className="stat-label">Completed</div>
+                                    </div>
+                                    <div className="card stat-card" style={{ cursor: 'pointer' }} onClick={() => router.push('/wallet')}>
+                                        <div className="stat-value" style={{ color: 'var(--green)' }}>₹{stats.walletBalance ?? '0.00'}</div>
+                                        <div className="stat-label">My Wallet</div>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
                             <h3 className="section-title">Your Modules</h3>
                             {modules.length > 0 ? (
