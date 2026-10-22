@@ -251,7 +251,6 @@ function ClassSessionsPage() {
                                                     <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{s.title}</div>
                                                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                                                         {s.course_name || 'Individual Class Session'}
-                                                        {s.is_demo && <span className="badge" style={{ marginLeft: '6px', background: 'var(--purple-bg)', color: 'var(--purple)', fontSize: '0.7rem' }}>Demo</span>}
                                                     </div>
                                                 </td>
                                                 <td>
