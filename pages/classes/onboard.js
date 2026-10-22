@@ -23,6 +23,7 @@ function HROnboarding() {
     const [phoneNumber, setPhoneNumber] = useState('');
     const [role, setRole] = useState('teacher');
     const [hourlyRate, setHourlyRate] = useState('');
+    const [platformFee, setPlatformFee] = useState('');
     const [selectedSubjects, setSelectedSubjects] = useState([]);
 
     // Edit modal state
@@ -155,6 +156,7 @@ function HROnboarding() {
                 phone_number: phoneNumber,
                 role,
                 hourly_rate: hourlyRate ? parseFloat(hourlyRate) : 0,
+                platform_fee: platformFee ? parseFloat(platformFee) : 0,
                 subjects: selectedSubjects,
             });
             const data = await res.json();
@@ -164,7 +166,7 @@ function HROnboarding() {
                     msg += ` WARNING: Onboarding email failed to send (${data.email_error}).`;
                 }
                 setMessage(msg);
-                setEmail(''); setFirstName(''); setLastName(''); setPhoneNumber(''); setHourlyRate('');
+                setEmail(''); setFirstName(''); setLastName(''); setPhoneNumber(''); setHourlyRate(''); setPlatformFee('');
                 setSelectedSubjects([]);
                 loadData();
             } else {
@@ -243,6 +245,7 @@ function HROnboarding() {
             phone_number: s.phone_number || '',
             email: s.email || '',
             hourly_rate: s.hourly_rate || 0,
+            platform_fee: s.platform_fee || 0,
             subjects: (s.subjects || []).map(sub => sub.id),
         });
     };
@@ -358,18 +361,58 @@ function HROnboarding() {
                             </select>
                         </div>
                         {role === 'teacher' && (
-                            <div className="form-group">
-                                <label className="label">Hourly Rate (₹) *</label>
-                                <input
-                                    className="input"
-                                    type="number"
-                                    step="0.01"
-                                    value={hourlyRate}
-                                    onChange={(e) => setHourlyRate(e.target.value)}
-                                    placeholder="0.00"
-                                    required
-                                />
-                            </div>
+                            <>
+                                <div className="form-group">
+                                    <label className="label">Teacher Payout / Class (₹) *</label>
+                                    <input
+                                        className="input"
+                                        type="number"
+                                        step="0.01"
+                                        value={hourlyRate}
+                                        onChange={(e) => setHourlyRate(e.target.value)}
+                                        placeholder="e.g. 400.00"
+                                        required
+                                    />
+                                    <small style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                                        Amount credited to teacher wallet per class.
+                                    </small>
+                                </div>
+                                <div className="form-group">
+                                    <label className="label">Our Academy Fee / Margin (₹) *</label>
+                                    <input
+                                        className="input"
+                                        type="number"
+                                        step="0.01"
+                                        value={platformFee}
+                                        onChange={(e) => setPlatformFee(e.target.value)}
+                                        placeholder="e.g. 100.00"
+                                        required
+                                    />
+                                    <small style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                                        Produces Academy profit per class.
+                                    </small>
+                                </div>
+                                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                    <label className="label">Total Collected from Student</label>
+                                    <div style={{
+                                        background: '#f8fafc',
+                                        border: '1.5px dashed #0284c7',
+                                        borderRadius: '8px',
+                                        padding: '10px 14px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                    }}>
+                                        <span style={{ fontSize: '0.82rem', color: '#475569', fontWeight: 600 }}>Total / Class:</span>
+                                        <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0369a1' }}>
+                                            ₹{((parseFloat(hourlyRate) || 0) + (parseFloat(platformFee) || 0)).toFixed(2)}
+                                        </span>
+                                    </div>
+                                    <small style={{ color: '#0369a1', fontSize: '0.74rem', marginTop: '4px' }}>
+                                        Student only sees ₹{((parseFloat(hourlyRate) || 0) + (parseFloat(platformFee) || 0)).toFixed(0)} (internal margin hidden).
+                                    </small>
+                                </div>
+                            </>
                         )}
                     </div>
 
@@ -531,7 +574,18 @@ function HROnboarding() {
                                                     {s.role}
                                                 </span>
                                             </td>
-                                            <td style={{ fontSize: '0.88rem' }}>{s.role === 'teacher' ? `₹${s.hourly_rate}` : '-'}</td>
+                                            <td style={{ fontSize: '0.85rem' }}>
+                                                {s.role === 'teacher' ? (
+                                                    <div>
+                                                        <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                                                            ₹{(parseFloat(s.hourly_rate || 0) + parseFloat(s.platform_fee || 0)).toFixed(0)} <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 400 }}>total</span>
+                                                        </div>
+                                                        <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+                                                            Teacher: ₹{s.hourly_rate} · Margin: ₹{s.platform_fee || 0}
+                                                        </div>
+                                                    </div>
+                                                ) : '-'}
+                                            </td>
                                             <td style={{ fontSize: '0.85rem' }}>
                                                 {s.subjects && s.subjects.length > 0
                                                     ? s.subjects.map(sub => sub.name).join(', ')
@@ -627,7 +681,18 @@ function HROnboarding() {
                                                     {s.role}
                                                 </span>
                                             </td>
-                                            <td style={{ fontSize: '0.88rem' }}>{s.role === 'teacher' ? `₹${s.hourly_rate}` : '-'}</td>
+                                            <td style={{ fontSize: '0.85rem' }}>
+                                                {s.role === 'teacher' ? (
+                                                    <div>
+                                                        <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                                                            ₹{(parseFloat(s.hourly_rate || 0) + parseFloat(s.platform_fee || 0)).toFixed(0)} <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 400 }}>total</span>
+                                                        </div>
+                                                        <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+                                                            Teacher: ₹{s.hourly_rate} · Margin: ₹{s.platform_fee || 0}
+                                                        </div>
+                                                    </div>
+                                                ) : '-'}
+                                            </td>
                                             <td style={{ fontSize: '0.85rem' }}>
                                                 {s.subjects && s.subjects.length > 0 ? (
                                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
@@ -731,11 +796,34 @@ function HROnboarding() {
                                     onChange={(e) => setEditForm({ ...editForm, phone_number: e.target.value })} />
                             </div>
                             {editingStaff.role === 'teacher' && (
-                                <div className="form-group">
-                                    <label className="label">Hourly Rate (₹)</label>
-                                    <input className="input" type="number" step="0.01" value={editForm.hourly_rate}
-                                        onChange={(e) => setEditForm({ ...editForm, hourly_rate: parseFloat(e.target.value) || 0 })} />
-                                </div>
+                                <>
+                                    <div className="form-group">
+                                        <label className="label">Teacher Payout / Class (₹)</label>
+                                        <input className="input" type="number" step="0.01" value={editForm.hourly_rate}
+                                            onChange={(e) => setEditForm({ ...editForm, hourly_rate: parseFloat(e.target.value) || 0 })} />
+                                        <small style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Credited to teacher wallet.</small>
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="label">Our Academy Fee / Margin (₹)</label>
+                                        <input className="input" type="number" step="0.01" value={editForm.platform_fee}
+                                            onChange={(e) => setEditForm({ ...editForm, platform_fee: parseFloat(e.target.value) || 0 })} />
+                                        <small style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Our platform commission.</small>
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="label">Total Fee Collected from Student</label>
+                                        <div style={{
+                                            background: '#f8fafc',
+                                            border: '1.5px dashed #0284c7',
+                                            borderRadius: '8px',
+                                            padding: '8px 12px',
+                                            fontSize: '1.1rem',
+                                            fontWeight: 800,
+                                            color: '#0369a1'
+                                        }}>
+                                            ₹{((parseFloat(editForm.hourly_rate) || 0) + (parseFloat(editForm.platform_fee) || 0)).toFixed(2)} / class
+                                        </div>
+                                    </div>
+                                </>
                             )}
                         </div>
 

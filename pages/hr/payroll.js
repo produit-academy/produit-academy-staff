@@ -333,8 +333,14 @@ function Payroll() {
                                                         {w.role_display || (w.staff_role ? w.staff_role.toUpperCase() : 'STAFF')}
                                                     </span>
                                                     {isTeacher && w.hourly_rate && parseFloat(w.hourly_rate) > 0 && (
-                                                        <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600, marginTop: '2px' }}>
-                                                            ₹{w.hourly_rate} / class
+                                                        <div style={{ fontSize: '0.74rem', marginTop: '3px' }}>
+                                                            <span style={{ color: '#059669', fontWeight: 700 }}>₹{w.hourly_rate} payout</span>
+                                                            {w.platform_fee && parseFloat(w.platform_fee) > 0 && (
+                                                                <span style={{ color: '#0284c7', marginLeft: '4px' }}>+ ₹{w.platform_fee} margin</span>
+                                                            )}
+                                                            <div style={{ color: '#475569', fontSize: '0.7rem' }}>
+                                                                Student: ₹{((parseFloat(w.hourly_rate) || 0) + (parseFloat(w.platform_fee) || 0)).toFixed(0)}/class
+                                                            </div>
                                                         </div>
                                                     )}
                                                 </td>
